@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Mathieu Blondel // Data</title>
+<link rel="stylesheet" href="../style.css" type="text/css" media="screen">
+</head>
+
+<body>
+
+<div id="topbar">
+  <div id="header">
+    <h1>Mathieu Blondel</h1>
+  </div>
+</div>
+
+<div id="navigation">
+  <p>
+  <a href="../">Home</a> /
+  <a href="../publications/">Publications</a> /
+  <a href="../talks/">Talks</a> /
+  <a href="../code/">Software</a> /
+  <a href="." class="active">Data</a> 
+  </p>
+</div>
+
+<div id="main">
+
+<h2>Amazon7</h2>
+
+<p>Amazon7 is a dataset that we created from <a
+href="http://www.cs.jhu.edu/~mdredze/datasets/sentiment/">raw data</a>
+collected by Mark Dredze and his colleagues. The dataset contains 1,362,109
+reviews of Amazon products.  Each review may belong to one of 7 categories
+(apparel, book, dvd, electronics, kitchen & housewares, music, video) and is
+represented as a 262,144 dimensional vector. The dataset contains 0.04%
+non-zero features.  This is the dataset that we used in our paper "Block
+Coordinate Descent Algorithms for Large-scale Sparse Multiclass Classification"
+(see below).  </p>
+
+<h3>pickle</h3>
+
+<p><a href="https://drive.google.com/open?id=0B5_0jMGiu_nielhpQ0xraGEwVkk">amazon7_pkl.tar.bz2</a> (303 MB download)</p>
+
+<p>For Python users, the easiest way to load the dataset is to use <a
+href="http://pythonhosted.org/joblib/">joblib</a>'s pickle functionalities.
+Note that joblib is also part of <a
+href="http://scikit-learn.org">scikit-learn</a> as
+sklearn.externals.joblib. After decompressing the above archive, you can load the dataset as follows:</p>
+
+<pre>
+try:
+    import joblib
+except ImportError:
+    from sklearn.externals import joblib
+
+data = joblib.load("amazon7_pkl/amazon7.pkl")
+X = data["X"]
+y = data["y"]
+print X.shape
+print y.shape
+print data["categories"]
+</pre>
+
+<p>Alternatively, you may want to use:</p>
+
+<p><a href="https://drive.google.com/open?id=0B5_0jMGiu_niZnRycGI1eEVUeTQ">amazon7_uncompressed_pkl.tar.bz2</a> (204 MB download, 1.5 GB uncompressed)</p>
+
+<p>The advantage is that the data can be loaded with mmap:</p>
+
+<pre>
+data = joblib.load("amazon7_uncompressed_pkl/amazon7.pkl", mmap_mode="r")
+</pre>
+
+<p>This is much faster, since data is not copied to memory.</p>
+
+<h3>svmlight / libsvm format</h3>
+
+<p><a href="https://drive.google.com/open?id=0B5_0jMGiu_niWWdhSmlHSGpnY3c">amazon7.bz2</a> [209 MB]</p>
+
+<p>For convenience, the dataset is also provided in the well-known svmlight /
+libsvm format.</p>
+
+<h3>Citation</h3>
+
+<p>If you use Amazon7 in a paper, please cite both the following papers.</p>
+
+<ul class="pub"> 
+<li>Block Coordinate Descent Algorithms for Large-scale Sparse
+Multiclass Classification. <br />
+Mathieu Blondel, Kazuhiro Seki, and Kuniaki Uehara. <br /> Machine Learning,
+May 2013. </li>
+<li> Confidence-Weighted Linear Classification. <br />
+Mark Dredze, Koby Crammer, and Fernando Pereira. <br />
+International Conference on Machine Learning (ICML), 2008.</li>
+</ul>
+
+</div>
+
+
+<div id="footer">
+Copyright 2010-Present Mathieu Blondel
+</div>
+
+</body>
+</html>
