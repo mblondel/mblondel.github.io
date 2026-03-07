@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Skate Kid</title>
+    <style>
+        /* La page prend 100% de l'écran, fond sombre, pas de défilement possible (utile sur mobile) */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111; 
+            overflow: hidden;
+            font-family: 'Comic Sans MS', sans-serif;
+            touch-action: none;
+        }
+        #gameWrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+        #canvasContainer {
+            position: relative;
+            width: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            aspect-ratio: 2 / 1; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            background-color: #87CEEB;
+            box-shadow: 0px 0px 20px rgba(0,0,0,0.8);
+            border-radius: 10px; 
+        }
+        #langContainer {
+            position: absolute;
+            top: 60%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        select {
+            padding: 8px 15px;
+            font-size: 18px;
+            font-family: 'Comic Sans MS', sans-serif;
+            border-radius: 5px;
+            border: 3px solid #333;
+            background-color: #fff;
+            cursor: pointer;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameWrapper">
+        <div id="canvasContainer">
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+            
+            <div id="langContainer">
+                <select id="langueSelect" onchange="changerLangue()">
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const estTactile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        const modeAppareil = estTactile ? "Touch" : "Desktop";
+
+        // --- DICTIONNAIRE DES LANGUES ---
+        const textes = {
+            fr: {
+                ecranTitre: "🛹 Skate Kid 🛹",
+                instructionTouch: "Tapote l'écran pour sauter ! (Long = grand saut)",
+                instructionDesktop: "Appuie sur Espace ou Flèche du Haut pour sauter !",
+                commencerTouch: "Tapote l'écran pour commencer",
+                commencerDesktop: "Appuie sur Espace pour commencer",
+                continuerTouch: "Tapote l'écran pour continuer",
+                continuerDesktop: "Appuie sur Espace pour continuer",
+                viesRestantes: "Vies restantes : ",
+                niv1: "Niveau 1 : Dans la rue",
+                niv2: "Niveau 2 : Skatepark",
+                niv3: "Niveau 3 : San Francisco",
+                score: "Score : ",
+                progression: "Progression : ",
+                pieces: "Pièces : ",
+                vies: "Vies : ",
+                bravo: "BRAVO ! Passage au ",
+                aie: "AÏE !",
+                victoireTitre: "🏆 VICTOIRE ! 🏆",
+                victoireSousTitre: "Tu es un véritable Pro du Skate !",
+                gameOverTitre: "💥 GAME OVER 💥",
+                gameOverSousTitre: "Aïe, tu n'as plus de cœurs...",
+                tresor: "Trésor amassé : ",
+                tresorFin: " pièces !",
+                creation: "Une création originale de :",
+                rejouerTouch: "Tapote l'écran pour rejouer",
+                rejouerDesktop: "Appuie sur Espace pour rejouer"
+            },
+            en: {
+                ecranTitre: "🛹 Skate Kid 🛹",
+                instructionTouch: "Tap the screen to jump! (Hold for high jump)",
+                instructionDesktop: "Press Space or Up Arrow to jump!",
+                commencerTouch: "Tap the screen to start",
+                commencerDesktop: "Press Space to start",
+                continuerTouch: "Tap the screen to continue",
+                continuerDesktop: "Press Space to continue",
+                viesRestantes: "Lives left: ",
+                niv1: "Level 1: On the street",
+                niv2: "Level 2: Skatepark",
+                niv3: "Level 3: San Francisco",
+                score: "Score: ",
+                progression: "Progress: ",
+                pieces: "Coins: ",
+                vies: "Lives: ",
+                bravo: "GREAT! Moving to ",
+                aie: "OUCH!",
+                victoireTitre: "🏆 VICTORY! 🏆",
+                victoireSousTitre: "You are a true Skate Pro!",
+                gameOverTitre: "💥 GAME OVER 💥",
+                gameOverSousTitre: "Ouch, you ran out of hearts...",
+                tresor: "Treasure collected: ",
+                tresorFin: " coins!",
+                creation: "An original creation by:",
+                rejouerTouch: "Tap the screen to play again",
+                rejouerDesktop: "Press Space to play again"
+            },
+            es: {
+                ecranTitre: "🛹 Skate Kid 🛹",
+                instructionTouch: "¡Toca la pantalla para saltar! (Mantén = alto)",
+                instructionDesktop: "¡Presiona Espacio o Arriba para saltar!",
+                commencerTouch: "Toca la pantalla para comenzar",
+                commencerDesktop: "Presiona Espacio para comenzar",
+                continuerTouch: "Toca la pantalla para continuar",
+                continuerDesktop: "Presiona Espacio para continuar",
+                viesRestantes: "Vidas restantes: ",
+                niv1: "Nivel 1: En la calle",
+                niv2: "Nivel 2: Skatepark",
+                niv3: "Nivel 3: San Francisco",
+                score: "Puntuación: ",
+                progression: "Progreso: ",
+                pieces: "Monedas: ",
+                vies: "Vidas: ",
+                bravo: "¡GENIAL! Pasando al ",
+                aie: "¡AY!",
+                victoireTitre: "🏆 ¡VICTORIA! 🏆",
+                victoireSousTitre: "¡Eres un verdadero Pro del Skate!",
+                gameOverTitre: "💥 FIN DEL JUEGO 💥",
+                gameOverSousTitre: "Ay, te quedaste sin corazones...",
+                tresor: "Tesoro acumulado: ",
+                tresorFin: " monedas!",
+                creation: "Una creación original de:",
+                rejouerTouch: "Toca la pantalla para jugar de nuevo",
+                rejouerDesktop: "Presiona Espacio para jugar de nuevo"
+            },
+            ja: {
+                ecranTitre: "🛹 Skate Kid 🛹",
+                instructionTouch: "画面をタップしてジャンプ！（長押しで大ジャンプ）",
+                instructionDesktop: "スペースキーを押してジャンプ！",
+                commencerTouch: "タップして開始",
+                commencerDesktop: "スペースキーを押して開始",
+                continuerTouch: "タップして続行",
+                continuerDesktop: "スペースキーを押して続行",
+                viesRestantes: "残りのライフ: ",
+                niv1: "レベル 1: ストリート",
+                niv2: "レベル 2: スケートパーク",
+                niv3: "レベル 3: サンフランシスコ",
+                score: "スコア: ",
+                progression: "進行度: ",
+                pieces: "コイン: ",
+                vies: "ライフ: ",
+                bravo: "素晴らしい！ 次へ: ",
+                aie: "イタッ！",
+                victoireTitre: "🏆 勝利！ 🏆",
+                victoireSousTitre: "君は真のスケートプロだ！",
+                gameOverTitre: "💥 ゲームオーバー 💥",
+                gameOverSousTitre: "ハートがなくなってしまった...",
+                tresor: "集めた宝物: ",
+                tresorFin: " 枚のコイン！",
+                creation: "オリジナル制作:",
+                rejouerTouch: "タップしてもう一度プレイ",
+                rejouerDesktop: "スペースキーを押してもう一度プレイ"
+            }
+        };
+
+        let langueCourante = "fr";
+
+        function changerLangue() {
+            let select = document.getElementById("langueSelect");
+            langueCourante = select.value;
+            select.blur(); 
+        }
+
+        // --- CONFIGURATION DES NIVEAUX ---
+        const niveaux = [
+            { idTexte: "niv1", vitesseObstacle: 4, pointsPourGagner: 1000, couleurSol: "#7f8c8d" },
+            { idTexte: "niv2", vitesseObstacle: 7, pointsPourGagner: 1500, couleurSol: "#d35400" },
+            { idTexte: "niv3", vitesseObstacle: 12, pointsPourGagner: 2000, couleurSol: "#34495e" }
+        ];
+
+        let niveauActuel = 0;
+        let score = 0;
+        let piecesCollectees = 0; 
+        let piecesAuDebutDuNiveau = 0; 
+        let vies = 3; 
+        
+        let messageTransition = ""; 
+        let tempsMessageTransition = 0; 
+        let positionDecor = 0; 
+        let jeuCommence = false; 
+        let jeuGagne = false; 
+        let gameOver = false; 
+
+        let afficherImpact = false;
+        let compteAreboursImpact = 0;
+
+        let obstaclesInitiaux = [];
+        let piecesInitiales = [];
+        let obstacles = [];
+        let pieces = [];
+
+        let piecesMaxHistorique = 0;
+        let piecesMaxNiveauCourant = 0;
+
+        // --- SYNTHÉTISEUR MUSICAL ---
+        let audioCtx;
+        let sequenceurInterval;
+        let indexNote = 0;
+
+        const partitions = [
+            { tempo: 200, typeSon: 'triangle', notes: [48, 0, 48, 55, 0, 45, 0, 52, 43, 0, 43, 50, 0, 40, 0, 47] },
+            { tempo: 200, typeSon: 'sine', notes: [60, 64, 67, 72, 60, 64, 67, 72, 65, 69, 72, 77, 67, 71, 74, 79] },
+            { tempo: 130, typeSon: 'square', notes: [40, 40, 52, 40, 43, 43, 55, 43, 45, 45, 57, 45, 46, 46, 58, 46] }
+        ];
+
+        function frequenceNote(note) {
+            if (note === 0) return 0; 
+            return 440 * Math.pow(2, (note - 69) / 12);
+        }
+
+        function jouerNote(note, duree, typeSon, volumeMax = 0.04) {
+            if (!audioCtx || note === 0) return;
+            const oscillateur = audioCtx.createOscillator();
+            const volumeControl = audioCtx.createGain();
+            
+            oscillateur.type = typeSon;
+            oscillateur.frequency.value = frequenceNote(note);
+            
+            volumeControl.gain.setValueAtTime(0, audioCtx.currentTime);
+            volumeControl.gain.linearRampToValueAtTime(volumeMax, audioCtx.currentTime + 0.05);
+            volumeControl.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duree * 0.9);
+            
+            oscillateur.connect(volumeControl);
+            volumeControl.connect(audioCtx.destination);
+            
+            oscillateur.start();
+            oscillateur.stop(audioCtx.currentTime + duree);
+        }
+
+        function lancerMusique(niveau) {
+            if (sequenceurInterval) clearInterval(sequenceurInterval); 
+            const partition = partitions[niveau];
+            indexNote = 0;
+            
+            sequenceurInterval = setInterval(() => {
+                jouerNote(partition.notes[indexNote], partition.tempo / 1000, partition.typeSon, partition.typeSon === 'square' ? 0.02 : 0.04);
+                indexNote = (indexNote + 1) % partition.notes.length; 
+            }, partition.tempo);
+        }
+
+        function jouerSonCrash() {
+            if (!audioCtx) return;
+            const oscillateur = audioCtx.createOscillator();
+            const volumeControl = audioCtx.createGain();
+            oscillateur.type = 'sawtooth';
+            oscillateur.frequency.setValueAtTime(150, audioCtx.currentTime);
+            oscillateur.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+            volumeControl.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            volumeControl.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            oscillateur.connect(volumeControl);
+            volumeControl.connect(audioCtx.destination);
+            oscillateur.start();
+            oscillateur.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function jouerSonVictoire() {
+            if (!audioCtx) return;
+            jouerNote(55, 0.2, 'square', 0.05); 
+            setTimeout(() => { jouerNote(60, 1.5, 'sine', 0.06); jouerNote(64, 1.5, 'sine', 0.06); jouerNote(67, 1.5, 'sine', 0.06); }, 250);
+        }
+        
+        function jouerSonGameOver() {
+            if (!audioCtx) return;
+            jouerNote(50, 0.4, 'sawtooth', 0.04); 
+            setTimeout(() => { jouerNote(46, 0.4, 'sawtooth', 0.04); }, 400);
+            setTimeout(() => { jouerNote(42, 1.0, 'sawtooth', 0.04); }, 800);
+        }
+
+        function jouerSonNiveauSuivant() {
+            if (!audioCtx) return;
+            jouerNote(60, 0.15, 'square', 0.03); 
+            setTimeout(() => jouerNote(64, 0.15, 'square', 0.03), 150); 
+            setTimeout(() => jouerNote(67, 0.15, 'square', 0.03), 300); 
+            setTimeout(() => jouerNote(72, 0.60, 'square', 0.04), 450); 
+        }
+
+        function jouerSonPiece() {
+            if (!audioCtx) return;
+            jouerNote(76, 0.1, 'sine', 0.03); 
+            setTimeout(() => jouerNote(83, 0.2, 'sine', 0.03), 80); 
+        }
+
+        // 2. Création du personnage 
+        const joueur = {
+            x: 50,
+            y: 300,
+            largeur: 32,
+            hauteur: 48,
+            vitesseY: 0,
+            gravite: 0.5, 
+            puissanceSaut: -11, 
+            auSol: true,
+            angleRoues: 0, 
+            couleurCasque: "#222", 
+            couleurTshirt: "#556b2f", 
+            couleurVeste: "#bdc3c7", 
+            couleurPantalon: "#d2b48c", 
+            couleurPlanche: "#8b4513", 
+            couleurRoues: "#00ffff" 
+        };
+
+        // Graine prédictible pour le niveau
+        let graine = 1;
+        function randomSeed() {
+            let x = Math.sin(graine++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        function preparerNiveau() {
+            graine = 42 + niveauActuel; 
+
+            obstaclesInitiaux = [];
+            piecesInitiales = [];
+            let configNiveau = niveaux[niveauActuel];
+            
+            let positionX = canvas.width + 200; 
+            let finDuNiveauX = configNiveau.pointsPourGagner * configNiveau.vitesseObstacle;
+            
+            while (positionX < finDuNiveauX - 400) {
+                let tailleObstacle = randomSeed() * 20 + 20;
+                let largeurObs = tailleObstacle;
+                let hauteurObs = tailleObstacle;
+                let couleurVoiture = null;
+
+                if (niveauActuel === 0) {
+                    largeurObs = tailleObstacle;
+                    hauteurObs = tailleObstacle * 1.5; 
+                } else if (niveauActuel === 1) {
+                    largeurObs = tailleObstacle * 1.8;
+                    hauteurObs = tailleObstacle * 0.6;
+                } else if (niveauActuel === 2) {
+                    largeurObs = tailleObstacle * 1.8; 
+                    let probaCouleur = randomSeed();
+                    couleurVoiture = probaCouleur > 0.5 ? "#f1c40f" : "#2980b9"; 
+                }
+
+                obstaclesInitiaux.push({ 
+                    x: positionX, y: 340 - hauteurObs, largeur: largeurObs, hauteur: hauteurObs, couleur: couleurVoiture 
+                });
+                
+                let espace = (randomSeed() * 90 + 60) * configNiveau.vitesseObstacle;
+                positionX += espace;
+            }
+
+            let positionPieceX = canvas.width + 100;
+            while (positionPieceX < finDuNiveauX - 200) {
+                let positionSure = false;
+                
+                while (!positionSure) {
+                    positionSure = true;
+                    for (let i = 0; i < obstaclesInitiaux.length; i++) {
+                        let obs = obstaclesInitiaux[i];
+                        let margeSecurite = 100; 
+                        
+                        if (positionPieceX > obs.x - margeSecurite && positionPieceX < obs.x + obs.largeur + margeSecurite) {
+                            positionSure = false; 
+                            positionPieceX = obs.x + obs.largeur + margeSecurite;
+                            break; 
+                        }
+                    }
+                }
+
+                if (positionPieceX < finDuNiveauX - 200) {
+                    let probaHauteur = randomSeed();
+                    let hauteurAjout = randomSeed();
+                    let hauteurPiece = probaHauteur > 0.5 ? 315 : 210 + hauteurAjout * 40;
+                    
+                    piecesInitiales.push({ x: positionPieceX, y: hauteurPiece, rayon: 12 });
+                    
+                    let espacePiece = (randomSeed() * 80 + 40) * configNiveau.vitesseObstacle;
+                    positionPieceX += espacePiece;
+                }
+            }
+
+            piecesMaxNiveauCourant = piecesInitiales.length;
+        }
+
+        // --- GESTION DES CONTRÔLES ---
+        function gererActionDebut(event) {
+            if (event.target.tagName === 'SELECT' || event.target.tagName === 'OPTION') {
+                return; 
+            }
+
+            if(event.type === 'touchstart' && event.cancelable) {
+                event.preventDefault(); 
+            }
+            
+            if(event.type === 'keydown' && event.code !== 'Space' && event.code !== 'ArrowUp') {
+                return;
+            }
+
+            if (jeuGagne || gameOver) {
+                jeuGagne = false;
+                gameOver = false;
+                niveauActuel = 0;
+                score = 0;
+                vies = 3; 
+                piecesCollectees = 0; 
+                piecesAuDebutDuNiveau = 0; 
+                piecesMaxHistorique = 0; 
+                
+                preparerNiveau(); 
+                recommencerParametres();
+                
+                jeuCommence = false; 
+                document.getElementById("langContainer").style.display = "block";
+                return;
+            }
+
+            if (!jeuCommence) {
+                jeuCommence = true;
+                document.getElementById("langContainer").style.display = "none"; 
+                
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                lancerMusique(niveauActuel);
+                return; 
+            }
+
+            if (joueur.auSol && !afficherImpact && !jeuGagne && !gameOver && tempsMessageTransition === 0 && jeuCommence) {
+                joueur.vitesseY = joueur.puissanceSaut;
+                joueur.auSol = false;
+            }
+        }
+
+        function gererActionFin(event) {
+            if(event.type === 'keyup' && event.code !== 'Space' && event.code !== 'ArrowUp') {
+                return;
+            }
+
+            if (joueur.vitesseY < 0) {
+                joueur.vitesseY *= 0.4; 
+            }
+        }
+
+        document.addEventListener("keydown", gererActionDebut);
+        document.addEventListener("keyup", gererActionFin);
+        window.addEventListener("touchstart", gererActionDebut, {passive: false});
+        window.addEventListener("touchend", gererActionFin);
+        window.addEventListener("mousedown", gererActionDebut);
+        window.addEventListener("mouseup", gererActionFin);
+
+
+        function collisionObstacle() {
+            if (!afficherImpact && !jeuGagne && !gameOver) {
+                afficherImpact = true;
+                compteAreboursImpact = 30;
+                jouerSonCrash(); 
+                vies--; 
+            }
+        }
+
+        function recommencerParametres() {
+            obstacles = obstaclesInitiaux.map(obs => ({...obs}));
+            pieces = piecesInitiales.map(p => ({...p})); 
+            
+            score = 0;
+            joueur.y = 300;
+            joueur.vitesseY = 0;
+            joueur.auSol = true;
+            afficherImpact = false;
+            
+            piecesCollectees = piecesAuDebutDuNiveau; 
+        }
+
+        // --- DESSIN DU DÉCOR (MOTEUR SANS GLITCH) ---
+        function dessinerDecor(configNiveau) {
+            ctx.fillStyle = "white";
+            let espacementLigne = niveauActuel === 2 ? 50 : 80;
+            let offsetLigne = positionDecor % espacementLigne;
+            
+            // On dessine suffisamment de lignes pour couvrir tout l'écran en permanence
+            for(let i = -1; i < (canvas.width / espacementLigne) + 2; i++) {
+                let positionLigne = (i * espacementLigne) - offsetLigne;
+                ctx.fillRect(positionLigne, 365, 30, 5);
+            }
+
+            if (niveauActuel === 0) {
+                // Le motif complet fait 1200 pixels (8 maisons x 150)
+                let patternW = 1200; 
+                let offsetW = (positionDecor * 0.25) % patternW;
+                
+                // En bouclant de -1 à 1, on garantit que l'écran est toujours parfaitement rempli à gauche et à droite
+                for(let loop = -1; loop < 2; loop++) {
+                    for(let i = 0; i < 8; i++) {
+                        let x = (i * 150) - offsetW + (loop * patternW);
+                        
+                        // Si le dessin est hors de l'écran, on ne gaspille pas de puissance à le dessiner
+                        if (x < -200 || x > canvas.width) continue;
+                        
+                        if (i % 2 === 0) {
+                            ctx.fillStyle = "#95a5a6"; ctx.fillRect(x, 100, 80, 240);
+                            ctx.fillStyle = "#f1c40f"; 
+                            ctx.fillRect(x + 15, 130, 20, 20); ctx.fillRect(x + 45, 130, 20, 20);
+                            ctx.fillRect(x + 15, 180, 20, 20); ctx.fillRect(x + 45, 180, 20, 20);
+                        } else {
+                            let indexMaison = Math.floor(i / 2) % 4;
+                            let basesMaisons = ["#1abc9c", "#2ecc71", "#3498db", "#9b59b6"]; 
+                            let toitsMaisons = ["#16a085", "#27ae60", "#2980b9", "#8e44ad"]; 
+
+                            ctx.fillStyle = basesMaisons[indexMaison]; ctx.fillRect(x, 220, 90, 120);
+                            ctx.fillStyle = toitsMaisons[indexMaison]; 
+                            ctx.beginPath(); ctx.moveTo(x - 10, 220); ctx.lineTo(x + 45, 160); ctx.lineTo(x + 100, 220); ctx.fill();
+                            
+                            ctx.fillStyle = "#ecf0f1"; ctx.fillRect(x + 15, 250, 25, 25); 
+                            ctx.fillStyle = "#34495e"; ctx.fillRect(x + 55, 260, 25, 80); 
+                        }
+                    }
+                }
+            } else if (niveauActuel === 1) {
+                // Arrière-plan (Pyramides)
+                let offsetM = (positionDecor * 0.1) % 300;
+                ctx.fillStyle = "#bdc3c7"; 
+                for(let i = -2; i < 5; i++) {
+                    let x = (i * 300) - offsetM;
+                    if (x < -400 || x > canvas.width) continue;
+                    ctx.beginPath(); ctx.moveTo(x, 340); ctx.lineTo(x + 150, 150); ctx.lineTo(x + 300, 340); ctx.fill();
+                    ctx.fillStyle = "#ecf0f1"; ctx.beginPath(); ctx.moveTo(x + 110, 185); ctx.lineTo(x + 150, 150); ctx.lineTo(x + 190, 185); ctx.lineTo(x + 150, 200); ctx.fill();
+                    ctx.fillStyle = "#bdc3c7";
+                }
+
+                // Premier plan (Arbres / Obstacles)
+                let patternT = 500;
+                let offsetT = (positionDecor * 0.3) % patternT;
+                for(let loop = -1; loop < 3; loop++) {
+                    for(let i = 0; i < 2; i++) {
+                        let x = (i * 250) - offsetT + (loop * patternT);
+                        if (x < -200 || x > canvas.width) continue;
+                        
+                        if (i % 2 === 0) {
+                            ctx.fillStyle = "#795548"; ctx.fillRect(x + 30, 240, 20, 100);
+                            ctx.fillStyle = "#2ecc71"; ctx.beginPath(); ctx.arc(x + 40, 220, 50, 0, Math.PI * 2); ctx.fill();
+                        } else {
+                            ctx.fillStyle = "#5c4033"; ctx.fillRect(x, 260, 100, 80);
+                            ctx.fillStyle = "#87CEEB"; ctx.beginPath(); ctx.arc(x + 50, 260, 40, 0, Math.PI, false); ctx.fill();
+                            ctx.fillStyle = "#333"; ctx.fillRect(x, 260, 10, 4); ctx.fillRect(x + 90, 260, 10, 4);
+                        }
+                    }
+                }
+            } else if (niveauActuel === 2) {
+                let patternSF = 1200;
+                let offsetSF = (positionDecor * 0.4) % patternSF;
+                ctx.strokeStyle = "#c0392b";
+                for(let loop = -1; loop < 2; loop++) {
+                    for(let i = 0; i < 3; i++) {
+                        let x = (i * 400) - offsetSF + (loop * patternSF);
+                        if (x < -500 || x > canvas.width) continue;
+                        
+                        ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x + 20, 100); ctx.quadraticCurveTo(x + 220, 320, x + 420, 100); ctx.stroke();
+                        ctx.lineWidth = 1;
+                        for(let j=1; j<10; j++) {
+                            let cableX = x + 20 + j * 40; let pct = (j * 40) / 400; let cableY = 100 + 4 * 220 * pct * (1 - pct); 
+                            ctx.beginPath(); ctx.moveTo(cableX, cableY); ctx.lineTo(cableX, 340); ctx.stroke();
+                        }
+                        ctx.fillStyle = "#c0392b"; ctx.fillRect(x, 50, 40, 290);
+                        ctx.fillStyle = "#87CEEB"; ctx.fillRect(x + 10, 100, 20, 240);
+                        ctx.fillStyle = "#c0392b"; ctx.fillRect(x + 10, 160, 20, 15); ctx.fillRect(x + 10, 240, 20, 15);
+                    }
+                }
+            }
+        }
+
+        function dessinerJoueur() {
+            ctx.save();
+            ctx.translate(joueur.x, joueur.y);
+
+            let angleBrasArriere = 0;
+            let angleBrasAvant = 0;
+
+            if (!joueur.auSol) {
+                if (joueur.vitesseY < 0) {
+                    angleBrasArriere = Math.PI / 1.2; 
+                    angleBrasAvant = -Math.PI / 1.2;  
+                } else {
+                    angleBrasArriere = Math.PI / 3;  
+                    angleBrasAvant = -Math.PI / 3;     
+                }
+            } else {
+                angleBrasArriere = Math.PI / 6; 
+                angleBrasAvant = -Math.PI / 6;  
+            }
+
+            // Bras arrière
+            ctx.save();
+            ctx.translate(joueur.largeur / 2 + 4, 10); ctx.rotate(angleBrasArriere);
+            ctx.strokeStyle = "#95a5a6"; ctx.lineWidth = 6; ctx.lineCap = "round";
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 14); ctx.stroke();
+            ctx.fillStyle = "#ffdbac"; ctx.beginPath(); ctx.arc(0, 16, 4, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+
+            // Planche
+            ctx.fillStyle = joueur.couleurPlanche;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(-4, joueur.hauteur - 10, 40, 8, 4); 
+            } else {
+                ctx.rect(-4, joueur.hauteur - 10, 40, 8);
+            }
+            ctx.fill();
+
+            // Roues
+            ctx.fillStyle = joueur.couleurRoues; ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+
+            ctx.save();
+            ctx.translate(8, joueur.hauteur - 2); ctx.rotate(joueur.angleRoues);
+            ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(joueur.largeur - 8, joueur.hauteur - 2); ctx.rotate(joueur.angleRoues);
+            ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke();
+            ctx.restore();
+
+            // Corps
+            ctx.fillStyle = joueur.couleurPantalon; ctx.fillRect(6, joueur.hauteur - 26, joueur.largeur - 12, 16);
+            ctx.fillStyle = joueur.couleurVeste; ctx.fillRect(6, 0, joueur.largeur - 12, joueur.hauteur - 26);
+            ctx.fillStyle = joueur.couleurTshirt; ctx.fillRect(12, 0, joueur.largeur - 24, joueur.hauteur - 26);
+
+            // Tête
+            ctx.fillStyle = "#ffdbac"; ctx.beginPath(); ctx.arc(joueur.largeur / 2, -6, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = joueur.couleurCasque;
+            ctx.beginPath(); ctx.arc(joueur.largeur / 2, -9, 11, Math.PI, Math.PI * 2); ctx.fill();
+            ctx.fillRect(joueur.largeur / 2 - 11, -9, 22, 5); 
+
+            // Bras avant
+            ctx.save();
+            ctx.translate(joueur.largeur / 2 - 4, 10); ctx.rotate(angleBrasAvant);
+            ctx.strokeStyle = joueur.couleurVeste; ctx.lineWidth = 6; ctx.lineCap = "round";
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 14); ctx.stroke();
+            ctx.fillStyle = "#ffdbac"; ctx.beginPath(); ctx.arc(0, 16, 4, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+
+            // Impact
+            if (afficherImpact) {
+                ctx.fillStyle = "rgba(231, 76, 60, 0.8)"; ctx.beginPath(); ctx.arc(joueur.largeur/2, joueur.hauteur/2, 25, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "white"; ctx.fillRect(joueur.largeur, -15, 35, 20);
+                ctx.fillStyle = "black"; ctx.font = "bold 12px Arial"; ctx.fillText(textes[langueCourante].aie, joueur.largeur + 3, 0);
+            }
+            ctx.restore();
+        }
+
+        function boucleDeJeu() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let configNiveau = niveaux[niveauActuel];
+
+            if (afficherImpact) {
+                compteAreboursImpact--;
+                if (compteAreboursImpact <= 0) {
+                    if (vies > 0) {
+                        recommencerParametres();
+                        jeuCommence = false; 
+                        if (sequenceurInterval) clearInterval(sequenceurInterval); 
+                    } else {
+                        gameOver = true;
+                        afficherImpact = false;
+                        if (sequenceurInterval) clearInterval(sequenceurInterval); 
+                        jouerSonGameOver();
+                    }
+                }
+            }
+
+            if (jeuCommence && tempsMessageTransition === 0 && !afficherImpact && !jeuGagne && !gameOver) {
+                positionDecor += configNiveau.vitesseObstacle;
+                joueur.angleRoues += configNiveau.vitesseObstacle * 0.08;
+            }
+            
+            dessinerDecor(configNiveau);
+
+            ctx.fillStyle = configNiveau.couleurSol; ctx.fillRect(0, 340, canvas.width, 60);
+
+            // --- TEXTES EN HAUT ---
+            ctx.fillStyle = "black"; ctx.font = "bold 20px Arial"; ctx.textAlign = "left";
+            ctx.fillText(textes[langueCourante][configNiveau.idTexte], 20, 30);
+            let pourcentage = Math.min(100, Math.floor((score / configNiveau.pointsPourGagner) * 100));
+            ctx.fillText(textes[langueCourante].progression + pourcentage + "%", 20, 60);
+            
+            ctx.textAlign = "right";
+            ctx.fillText(textes[langueCourante].pieces + piecesCollectees, canvas.width - 20, 30);
+            let coeurs = "❤️".repeat(Math.max(0, vies));
+            ctx.fillText(textes[langueCourante].vies + coeurs, canvas.width - 20, 60);
+            ctx.textAlign = "left"; 
+
+            if (tempsMessageTransition > 0) {
+                ctx.fillStyle = "#27ae60"; ctx.font = "bold 30px Arial"; ctx.textAlign = "center";
+                ctx.fillText(messageTransition, canvas.width / 2, canvas.height / 2); ctx.textAlign = "left"; 
+                if (jeuCommence && !afficherImpact && !jeuGagne && !gameOver) tempsMessageTransition--;
+            }
+
+            if (jeuCommence && !afficherImpact && !jeuGagne && !gameOver) {
+                joueur.vitesseY += joueur.gravite;
+                joueur.y += joueur.vitesseY;
+                if (joueur.y >= 300) { joueur.y = 300; joueur.vitesseY = 0; joueur.auSol = true; }
+            }
+
+            // --- LOGIQUE DES PIÈCES ---
+            for (let i = pieces.length - 1; i >= 0; i--) {
+                let piece = pieces[i];
+                if (jeuCommence && !afficherImpact && !jeuGagne && !gameOver && tempsMessageTransition === 0) piece.x -= configNiveau.vitesseObstacle;
+
+                if (piece.x > -50 && piece.x < canvas.width + 50) {
+                    ctx.beginPath(); ctx.arc(piece.x, piece.y, piece.rayon, 0, Math.PI * 2);
+                    ctx.fillStyle = "#f1c40f"; ctx.fill();
+                    ctx.lineWidth = 3; ctx.strokeStyle = "#e67e22"; ctx.stroke();
+                    ctx.fillStyle = "#d35400"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.fillText("★", piece.x, piece.y + 1); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+                }
+
+                let testX = piece.x; let testY = piece.y;
+                if (piece.x < joueur.x) testX = joueur.x; else if (piece.x > joueur.x + joueur.largeur) testX = joueur.x + joueur.largeur;
+                if (piece.y < joueur.y) testY = joueur.y; else if (piece.y > joueur.y + joueur.hauteur) testY = joueur.y + joueur.hauteur;
+                
+                let distance = Math.sqrt(Math.pow(piece.x - testX, 2) + Math.pow(piece.y - testY, 2));
+                
+                if (distance <= piece.rayon && !gameOver) {
+                    piecesCollectees++; jouerSonPiece(); pieces.splice(i, 1); 
+                } 
+            }
+
+            // --- DESSIN DES OBSTACLES ---
+            for (let i = 0; i < obstacles.length; i++) {
+                let obs = obstacles[i];
+                if (jeuCommence && !afficherImpact && !jeuGagne && !gameOver && tempsMessageTransition === 0) obs.x -= configNiveau.vitesseObstacle;
+                
+                if (obs.x > -100 && obs.x < canvas.width + 100) {
+                    if (niveauActuel === 0) {
+                        ctx.fillStyle = "#e67e22"; ctx.beginPath();
+                        ctx.moveTo(obs.x + obs.largeur * 0.4, obs.y); ctx.lineTo(obs.x + obs.largeur * 0.6, obs.y);
+                        ctx.lineTo(obs.x + obs.largeur, obs.y + obs.hauteur - 5); ctx.lineTo(obs.x, obs.y + obs.hauteur - 5); ctx.fill();
+                        ctx.fillStyle = "#333"; ctx.fillRect(obs.x - 5, obs.y + obs.hauteur - 5, obs.largeur + 10, 5);
+                        ctx.fillStyle = "#ecf0f1"; ctx.beginPath();
+                        ctx.moveTo(obs.x + obs.largeur * 0.3, obs.y + obs.hauteur * 0.3); ctx.lineTo(obs.x + obs.largeur * 0.7, obs.y + obs.hauteur * 0.3);
+                        ctx.lineTo(obs.x + obs.largeur * 0.8, obs.y + obs.hauteur * 0.6); ctx.lineTo(obs.x + obs.largeur * 0.2, obs.y + obs.hauteur * 0.6); ctx.fill();
+                    } else if (niveauActuel === 1) {
+                        ctx.fillStyle = "#95a5a6"; ctx.fillRect(obs.x, obs.y, obs.largeur, obs.hauteur);
+                        ctx.fillStyle = "#7f8c8d"; ctx.fillRect(obs.x, obs.y + obs.hauteur - 5, obs.largeur, 5);
+                        ctx.fillStyle = "#ecf0f1"; ctx.fillRect(obs.x, obs.y, obs.largeur, 4);
+                        ctx.fillStyle = "#8e44ad"; ctx.fillRect(obs.x + 5, obs.y + 10, 10, 3);
+                        ctx.fillStyle = "#e67e22"; ctx.fillRect(obs.x + 20, obs.y + 15, 8, 2);
+                    } else if (niveauActuel === 2) {
+                        let hHaut = obs.hauteur * 0.45; let hBas = obs.hauteur * 0.55;
+                        ctx.fillStyle = obs.couleur; 
+                        ctx.fillRect(obs.x + obs.largeur * 0.15, obs.y, obs.largeur * 0.7, hHaut); ctx.fillRect(obs.x, obs.y + hHaut, obs.largeur, hBas);
+                        ctx.fillStyle = "#ecf0f1"; ctx.fillRect(obs.x + obs.largeur * 0.2, obs.y + 3, obs.largeur * 0.25, hHaut - 3); ctx.fillRect(obs.x + obs.largeur * 0.55, obs.y + 3, obs.largeur * 0.25, hHaut - 3);
+                        ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(obs.x + obs.largeur * 0.25, obs.y + obs.hauteur, 5, 0, Math.PI*2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(obs.x + obs.largeur * 0.75, obs.y + obs.hauteur, 5, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+
+                if (joueur.x < obs.x + obs.largeur && joueur.x + joueur.largeur > obs.x && joueur.y < obs.y + obs.hauteur && joueur.y + joueur.hauteur > obs.y) {
+                    collisionObstacle();
+                }
+            }
+
+            // LE JOUEUR EST DESSINÉ EN DERNIER (TOUJOURS AU PREMIER PLAN !)
+            dessinerJoueur();
+
+            if (jeuCommence && tempsMessageTransition === 0 && !afficherImpact && !jeuGagne && !gameOver) score++;
+
+            if (score >= configNiveau.pointsPourGagner && tempsMessageTransition === 0 && !afficherImpact && !jeuGagne && !gameOver) {
+                if (niveauActuel < 2) {
+                    
+                    piecesMaxHistorique += piecesMaxNiveauCourant;
+
+                    niveauActuel++;
+                    piecesAuDebutDuNiveau = piecesCollectees;
+                    
+                    preparerNiveau(); 
+                    
+                    messageTransition = textes[langueCourante].bravo + textes[langueCourante][niveaux[niveauActuel].idTexte];
+                    tempsMessageTransition = 120; 
+                    recommencerParametres(); 
+                    
+                    if (sequenceurInterval) clearInterval(sequenceurInterval); 
+                    jouerSonNiveauSuivant();
+                    
+                    setTimeout(() => { if (!jeuGagne && !gameOver) lancerMusique(niveauActuel); }, 1000);
+
+                } else {
+                    jeuGagne = true;
+                    if (sequenceurInterval) clearInterval(sequenceurInterval); 
+                    jouerSonVictoire(); 
+                }
+            }
+
+            // --- ÉCRAN DE DÉMARRAGE ET DE REPRISE ---
+            if (!jeuCommence && !jeuGagne && !gameOver && !afficherImpact) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                if (vies === 3 && niveauActuel === 0 && score === 0) {
+                    ctx.fillStyle = "white"; ctx.font = "bold 70px Arial"; ctx.textAlign = "center";
+                    ctx.fillText(textes[langueCourante].ecranTitre, canvas.width / 2, 100);
+                    
+                    ctx.fillStyle = "#ecf0f1"; ctx.font = "bold 18px Arial";
+                    ctx.fillText(textes[langueCourante]["instruction" + modeAppareil], canvas.width / 2, 160);
+                    
+                    if (Math.floor(Date.now() / 500) % 2 === 0) {
+                        ctx.fillStyle = "#f1c40f"; ctx.font = "bold 24px Arial";
+                        ctx.fillText(textes[langueCourante]["commencer" + modeAppareil], canvas.width / 2, 340);
+                    }
+                } 
+                else {
+                    ctx.fillStyle = "#e74c3c"; ctx.font = "bold 50px Arial"; ctx.textAlign = "center";
+                    ctx.fillText(textes[langueCourante].aie, canvas.width / 2, 140);
+                    
+                    ctx.fillStyle = "white"; ctx.font = "bold 24px Arial";
+                    let coeurs = "❤️".repeat(Math.max(0, vies));
+                    ctx.fillText(textes[langueCourante].viesRestantes + coeurs, canvas.width / 2, 200);
+
+                    if (Math.floor(Date.now() / 500) % 2 === 0) {
+                        ctx.fillStyle = "#f1c40f"; ctx.font = "bold 24px Arial";
+                        ctx.fillText(textes[langueCourante]["continuer" + modeAppareil], canvas.width / 2, 300);
+                    }
+                }
+                ctx.textAlign = "left"; 
+            }
+
+            // --- ÉCRAN DE VICTOIRE OU GAME OVER ---
+            if (jeuGagne || gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.75)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = jeuGagne ? "#f1c40f" : "#e74c3c"; ctx.font = "bold 60px Arial"; ctx.textAlign = "center";
+                let titre = jeuGagne ? textes[langueCourante].victoireTitre : textes[langueCourante].gameOverTitre;
+                ctx.fillText(titre, canvas.width / 2, 80);
+                
+                ctx.fillStyle = "white"; ctx.font = "20px Arial";
+                let sousTitre = jeuGagne ? textes[langueCourante].victoireSousTitre : textes[langueCourante].gameOverSousTitre;
+                ctx.fillText(sousTitre, canvas.width / 2, 130);
+                
+                let totalMaxPieces = piecesMaxHistorique + piecesMaxNiveauCourant;
+                ctx.fillStyle = "#d35400";
+                ctx.fillText(textes[langueCourante].tresor + piecesCollectees + " / " + totalMaxPieces + textes[langueCourante].tresorFin, canvas.width / 2, 170);
+
+                ctx.fillStyle = "#3498db"; ctx.font = "italic 18px Arial";
+                ctx.fillText(textes[langueCourante].creation, canvas.width / 2, 230);
+                
+                ctx.fillStyle = "#ecf0f1"; ctx.font = "bold 26px 'Comic Sans MS', sans-serif";
+                ctx.fillText("Maya, Sacha, Mathieu & Gemini", canvas.width / 2, 270);
+
+                if (Math.floor(Date.now() / 500) % 2 === 0) {
+                    ctx.fillStyle = "#2ecc71"; ctx.font = "bold 20px Arial";
+                    ctx.fillText(textes[langueCourante]["rejouer" + modeAppareil], canvas.width / 2, 340);
+                }
+                ctx.textAlign = "left"; 
+            }
+
+            requestAnimationFrame(boucleDeJeu);
+        }
+
+        // Démarrage initial
+        piecesMaxHistorique = 0;
+        preparerNiveau();
+        recommencerParametres();
+        boucleDeJeu();
+    </script>
+</body>
+</html>
