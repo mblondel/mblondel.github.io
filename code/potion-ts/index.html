@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A runnable, chapter-by-chapter tutorial of _why the lucky stiff's Potion language, reimplemented in TypeScript.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Potion.ts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Martian+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a small book with live code. Contents in a sticky margin on the left, one reading column on the right; on phones the contents sit above the first chapter. */
+:root {
+  --paper: #eef1ea;
+  --surface: #f9faf6;
+  --well: #f2f4ee;
+  --ink: #261a33;
+  --muted: #645d70;
+  --rule: #d2d8ce;
+  --potion: #7438a3;
+  --potion-soft: #ebe0f3;
+  --amber: #925600;
+  --green: #2c6a3c;
+  --blue: #1f5d88;
+  --rose: #9c2f66;
+  --err: #a8261d;
+  --err-bg: #f7e1dd;
+  --errline: #f3d6d1;
+  --ok: #2c6a3c;
+  --ok-bg: #dcefe0;
+  --display: "Young Serif", "Iowan Old Style", Georgia, serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --code-size: 12.5px;
+  --code-lh: 1.75;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16111c; --surface: #1d1725; --well: #191420; --ink: #ece5f3; --muted: #a59bb0; --rule: #352c40;
+    --potion: #c79cee; --potion-soft: #2e2240; --amber: #e9b766; --green: #93cf9f; --blue: #86bce3; --rose: #ec8fbd;
+    --err: #ff9c90; --err-bg: #3a1e22; --errline: #43232a; --ok: #93cf9f; --ok-bg: #1d3324; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #16111c; --surface: #1d1725; --well: #191420; --ink: #ece5f3; --muted: #a59bb0; --rule: #352c40;
+  --potion: #c79cee; --potion-soft: #2e2240; --amber: #e9b766; --green: #93cf9f; --blue: #86bce3; --rose: #ec8fbd;
+  --err: #ff9c90; --err-bg: #3a1e22; --errline: #43232a; --ok: #93cf9f; --ok-bg: #1d3324; color-scheme: dark;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.6;
+}
+a { color: var(--potion); }
+:focus-visible { outline: 2px solid var(--potion); outline-offset: 2px; }
+code {
+  font-family: var(--mono);
+  font-size: 0.74em;
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background: var(--potion-soft);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 760px);
+  justify-content: center;
+  gap: 56px;
+  padding-block: 40px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- margin: contents, progress, settings ---------- */
+.side {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 32px);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  font-size: 14.5px;
+}
+.brand { font-family: var(--display); font-size: 22px; line-height: 1; text-decoration: none; color: var(--ink); }
+.brand span { color: var(--potion); }
+.toc ol { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.toc a {
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 8px;
+  margin-inline: -8px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.toc a:hover { color: var(--ink); background: var(--well); }
+.toc a[aria-current] { color: var(--ink); background: var(--potion-soft); }
+.toc .num { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toc a[aria-current] .num { color: var(--potion); }
+.mark { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); align-self: center; box-sizing: border-box; }
+.mark[data-state="solved"] { background: var(--ok); border-color: var(--ok); }
+.progress { display: flex; flex-direction: column; gap: 6px; color: var(--muted); }
+.progress b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.meter { height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.meter::after { content: ""; display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--ok); }
+@media (prefers-reduced-motion: no-preference) { .meter::after { transition: width .4s ease; } }
+.toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
+.toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--potion); }
+.keys { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0; }
+.keys kbd { font-family: var(--mono); font-size: 11px; color: var(--ink); }
+
+/* ---------- reading column ---------- */
+.doc { display: flex; flex-direction: column; gap: 88px; min-width: 0; }
+.hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; }
+.bottle { margin: 0; font-family: var(--mono); font-size: 7px; line-height: 1.08; color: var(--potion); user-select: none; }
+.hero h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 52px; line-height: 1; letter-spacing: -0.015em; }
+.hero h1 span { color: var(--potion); }
+.hero .lede { margin: 12px 0 0; font-size: 19px; max-width: 34em; text-wrap: pretty; }
+.howto {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 15.5px;
+  color: var(--muted);
+}
+.howto strong { color: var(--ink); }
+.hero-note { grid-column: 1 / -1; margin: -12px 0 0; color: var(--muted); font-size: 15.5px; max-width: 65ch; }
+
+.chapter { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 24px); }
+.chapter > p { margin: 0; max-width: 65ch; text-wrap: pretty; }
+.ch-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.ch-head h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.15; text-wrap: balance; }
+.chapter-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  max-width: 62ch;
+}
+.chapter-switch p { margin: 0; color: var(--muted); font-size: 15px; }
+.aside { display: flex; flex-direction: column; gap: 2px; padding-left: 16px; border-left: 2px solid var(--rule); max-width: 62ch; }
+.aside p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+/* ---------- live cells ---------- */
+.cell { margin: 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); overflow: hidden; }
+.cell:focus-within { border-color: var(--potion); }
+.code { display: grid; }
+.code > * { grid-area: 1 / 1; }
+.code pre, .code textarea {
+  margin: 0;
+  padding: 14px 18px;
+  border: 0;
+  box-sizing: border-box;
+  width: 100%;
+  font: 400 var(--code-size) / var(--code-lh) var(--mono);
+  letter-spacing: 0;
+  tab-size: 2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.code textarea {
+  background: transparent;
+  color: transparent;
+  caret-color: var(--ink);
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  min-height: 0;
+}
+.code textarea::selection { background: var(--potion-soft); color: transparent; }
+.hl { color: var(--ink); pointer-events: none; }
+.ln { display: block; }
+.ln.err { background: var(--errline); margin-inline: -18px; padding-inline: 18px; }
+.t-com { color: var(--muted); font-style: italic; }
+.t-str { color: var(--green); }
+.t-num { color: var(--amber); }
+.t-kw { color: var(--potion); font-weight: 600; }
+.t-kind { color: var(--blue); }
+.t-path { color: var(--rose); }
+
+.cell-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 6px 10px 6px 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+}
+.cell-bar button { font: inherit; cursor: pointer; }
+.run {
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--potion);
+  color: var(--surface);
+  font-weight: 700 !important;
+}
+.run.stop { background: var(--err); }
+.run:hover { filter: brightness(1.08); }
+.key { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.link { border: 0; background: none; padding: 2px 0; color: var(--muted); text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.link:hover { color: var(--ink); text-decoration-color: currentColor; }
+.status { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cell.running .status { color: var(--potion); }
+
+.cell-out {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 18px 14px;
+  border-top: 1px dashed var(--rule);
+  background: var(--well);
+  font-family: var(--mono);
+  font-size: var(--code-size);
+  line-height: var(--code-lh);
+  overflow-wrap: anywhere;
+}
+.cell-out:empty { display: none; }
+.cell.running .cell-out { opacity: 0.55; }
+.o-text { margin: 0; font: inherit; white-space: pre-wrap; }
+.o-value { display: flex; align-items: baseline; gap: 10px; }
+.o-arrow { color: var(--potion); }
+.o-v { font-weight: 600; min-width: 0; white-space: pre-wrap; }
+.o-kind { margin-left: auto; padding-left: 8px; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.o-warn, .o-skip { color: var(--muted); font-style: italic; }
+.o-error { padding: 7px 11px; border-radius: 6px; background: var(--err-bg); color: var(--err); font-weight: 600; }
+.o-intent { color: var(--muted); font-family: var(--body); font-size: 14.5px; margin-bottom: -2px; }
+.o-check { color: var(--muted); }
+.o-ok { color: var(--ok); font-weight: 600; }
+.placeholder { margin: 0; color: var(--muted); font-family: var(--body); font-size: 14.5px; }
+.cell-ast {
+  margin: 0;
+  padding: 12px 18px;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  white-space: pre;
+  overflow-x: auto;
+  max-height: 320px;
+}
+.cell-ast.is-error { color: var(--err); white-space: pre-wrap; }
+
+/* ---------- exercises ---------- */
+.exercise {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--well);
+}
+.exercise > p { margin: 0; max-width: 62ch; }
+.ex-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.ex-head h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 23px; line-height: 1.2; }
+.badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.badge[data-state="solved"] { background: var(--ok-bg); border-color: transparent; color: var(--ok); }
+.badge[data-state="solved"]::before { content: "✓ "; }
+.exercise .cell { background: var(--surface); }
+.ex-help { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 20px; font-size: 14.5px; }
+.ex-help details { flex: 1 1 260px; color: var(--muted); }
+.ex-help summary { cursor: pointer; font-weight: 700; color: var(--ink); width: max-content; }
+.ex-help details p { margin: 6px 0 0; }
+.ex-help .link { font-size: 14px; }
+
+.colophon { color: var(--muted); font-size: 14.5px; border-top: 1px solid var(--rule); padding-top: 20px; margin-top: -40px; }
+.colophon p { margin: 0; max-width: 65ch; }
+
+/* ---------- narrow screens ---------- */
+@media (max-width: 960px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-block: 24px 72px; }
+  .side { position: static; max-height: none; overflow: visible; order: 2; padding: 16px 18px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+  .side .brand { display: none; }
+  .doc { display: contents; }
+  .hero { order: 1; }
+  .chapter, .colophon { order: 3; }
+  .chapter + .chapter { margin-top: 52px; }
+  .toc ol { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); column-gap: 18px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .bottle { display: none; }
+  .hero h1 { font-size: 40px; }
+  .hero .lede { font-size: 17px; }
+  .howto { margin-top: 18px; }
+  .ch-head h2 { font-size: 28px; }
+  .code pre, .code textarea { padding-inline: 14px; }
+  .ln.err { margin-inline: -14px; padding-inline: 14px; }
+  .cell-out { padding-inline: 14px; }
+  .exercise { padding: 14px 12px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="side" aria-label="Tutorial">
+    <a class="brand" href="#top">Potion<span>.ts</span></a>
+    <div class="toc" id="toc"><span class="eyebrow">Contents</span></div>
+    <div class="progress">
+      <span id="progress"></span>
+      <div class="meter" aria-hidden="true"></div>
+    </div>
+    <p class="keys"><kbd class="runkey">⌘↵</kbd> runs a cell. <kbd>Shift↵</kbd> runs it and moves on. <kbd>Esc</kbd> leaves the editor.</p>
+  </nav>
+
+  <main class="doc" id="doc">
+    <header class="hero" id="top">
+<pre class="bottle" aria-hidden="true">    .ooo
+     'OOOo
+ ~ p ooOOOo tion ~
+     .OOO
+      oO
+        Oo
+       'O
+        `
+       (o)
+   ___/ /
+  /`    \
+ /v^  `  ,
+(...v/v^/
+ \../::/
+  \/::/</pre>
+      <div>
+        <h1>Potion<span>.ts</span></h1>
+        <p class="lede">A short, runnable tour of the little language _why the lucky stiff wrote in 2009, reimplemented in TypeScript so it runs in your browser.</p>
+      </div>
+      <p class="howto"><strong>How to read this.</strong> Every code box is live: edit it and press Run. Cells in a chapter share their names from top to bottom, so a cell can use what the cells above it defined. Each chapter ends with a short exercise that checks itself.</p>
+      <p class="hero-note">This version leaves out a few things the original has: continuations (<code>here</code>), files and networking, and the C foreign-function interface. The original lives at <a href="https://github.com/perl11/potion" target="_blank" rel="noopener">perl11/potion</a>, and its README is still the best description of what _why was reaching for.</p>
+    </header>
+  </main>
+</div>
+
+<script type="text/plain" id="worker-src">(()=>{class w{v;constructor(e){this.v=e}}class k{items;constructor(e=[]){this.items=e}}class M{m=new Map;static keyOf(e){if(e instanceof w)return"\x02"+e.v;return e}get(e){let t=this.m.get(M.keyOf(e));return t?t[1]:null}has(e){return this.m.has(M.keyOf(e))}set(e,t){this.m.set(M.keyOf(e),[e,t])}delete(e){this.m.delete(M.keyOf(e))}entries(){return[...this.m.values()]}get size(){return this.m.size}}class U{name;inner;attr;constructor(e,t,s){this.name=e;this.inner=t;this.attr=s}}class x{name;parent;methods=new Map;ctor=null;meta=null;builtin=!1;constructor(e,t){this.name=e;this.parent=t}}class K{kind;ivars=new Map;constructor(e){this.kind=e}}class H{parent;self;vars=new Map;constructor(e,t){this.parent=e;this.self=t}}class j{params;sigText;body;env;self;name;constructor(e,t,s,n,r,l=""){this.params=e;this.sigText=t;this.body=s;this.env=n;this.self=r;this.name=l}}class q{name;params;sigText;fn;constructor(e,t,s,n){this.name=e;this.params=t;this.sigText=s;this.fn=n}}var z=(e)=>e instanceof j||e instanceof q,C=(e)=>typeof e==="number"||e instanceof w,O=(e)=>typeof e==="number"?e:e.v,T=(e)=>e!==null&&e!==!1;function I(e){if(Number.isNaN(e))return"nan";if(!Number.isFinite(e))return e>0?"inf":"-inf";if(Number.isInteger(e)&&Math.abs(e)<1000000000000000000000)return e.toFixed(0)+".0";return String(Number(e.toPrecision(16)))}class d extends Error{line;cell;constructor(e,t){super(e);this.line=t}}var ee=(e)=>e===" "||e==="\t"||e==="\f"||e==="\v",te=(e)=>e===`
+`||e==="\r",B=(e)=>e>="0"&&e<="9",se=(e)=>B(e)||e>="a"&&e<="f"||e>="A"&&e<="F";function ne(e){if(!e)return!1;let t=e.charCodeAt(0);return t>=65&&t<=90||t>=97&&t<=122||e==="_"||e==="$"||e==="@"||t>=128}var ce=(e)=>ne(e)||B(e)||e===";"||e==="`"||e==="{"||e==="}",ke={eqs:["<=>","==","!="],cmps:[">=",">","<=","<"],bitors:["|","^"],bitand:["&"],bitshift:["<<",">>"],sum:["+","-"],product:["*","/","%"],power:["**"]},we=["||","&&","or","and","|","^","&","<<",">>","+","-","**","*","/","%"];class P{s;cell;i=0;far=0;memo=new Map;lineStarts=[0];constructor(e,t){this.s=e;this.cell=t;for(let s=0;s<e.length;s++)if(e[s]===`
+`)this.lineStarts.push(s+1)}lineOf(e){let t=0,s=this.lineStarts.length-1;while(t<s){let n=t+s+1>>1;if(this.lineStarts[n]<=e)t=n;else s=n-1}return t+1}ch(e=0){return this.s[this.i+e]??""}touch(){if(this.i>this.far)this.far=this.i}lit(e){if(this.touch(),this.s.startsWith(e,this.i))return this.i+=e.length,this.touch(),!0;return!1}word(e){let t=this.i;if(this.lit(e)&&!ce(this.ch()))return!0;return this.i=t,!1}skipComment(){while(this.i<this.s.length&&!te(this.ch()))this.i++}ws1(){for(;;){let e=this.ch();if(ee(e))this.i++;else if(e==="#")this.skipComment();else break}}ws2(){for(;;){let e=this.ch();if(ee(e)||te(e))this.i++;else if(e==="#")this.skipComment();else break}}eol(){return this.lit(`\r
+`)||this.lit(`
+`)||this.lit("\r")}sep(){let e=this.i;if(!(this.eol()||this.lit(",")))return this.i=e,!1;for(;;){let t=this.ch();if(ee(t)||te(t)||t===",")this.i++;else if(t==="#")this.skipComment();else break}return!0}node(e,t,s){return{k:e,line:this.lineOf(t),cell:this.cell,...s}}program(){this.ws2();let e=this.statements();if(this.ws2(),this.i<this.s.length){let t=Math.max(this.far,this.i),s=this.lineOf(t),n=t-this.lineStarts[s-1]+1,r=this.s.slice(t,t+12).split(`
+`)[0];throw new d(`Syntax error at line ${s}, column ${n}`+(r?` near "${r}"`:""),s)}return{k:"code",stmts:e}}statements(){let e=[],t=this.stmt();if(!t)return e;e.push(t);for(;;){let s=this.i;if(!this.sep())break;let n=this.stmt();if(!n){this.i=s;break}e.push(n)}return this.sep(),e}orTok(){if(this.lit("||")||this.word("or"))return this.ws2(),!0;return!1}andTok(){if(this.lit("&&")||this.word("and"))return this.ws2(),!0;return!1}stmt(){let e=this.sets();if(!e)return null;for(;;){let t=this.i,s=this.i;if(this.orTok()){let n=this.sets();if(n){e=this.node("or",s,{a:e,b:n});continue}}if(this.i=t,this.andTok()){let n=this.sets();if(n){e=this.node("and",s,{a:e,b:n});continue}}this.i=t;break}return e}sets(){let e=this.i,t=this.eqs();if(!t)return null;let s=this.i;if(this.ch()==="="&&this.ch(1)!=="="){this.i++,this.ws2();let n=this.sets();if(n)return this.node("assign",e,{lhs:t,rhs:n})}if(this.i=s,this.lit(":=")){this.ws2();let n=this.value();if(n)return this.node("assign",e,{lhs:t,rhs:n})}this.i=s;for(let n of we){if(s=this.i,n==="or"||n==="and"?this.word(n):this.lit(n)){if(this.ws2(),this.ch()==="="&&this.ch(1)!=="="){this.i++,this.ws2();let l=this.sets();if(l){let a=n==="||"||n==="or"?"or":n==="&&"||n==="and"?"and":"op",c=a==="op"?this.node("op",e,{op:n,a:t,b:l}):this.node(a,e,{a:t,b:l});return this.node("assign",e,{lhs:t,rhs:c})}}}this.i=s}return t}binLevel(e,t){let s=t();if(!s)return null;e:for(;;){for(let n of ke[e]){let r=this.i,l=this.i;if(!this.lit(n))continue;if(n==="|"&&(this.ch()==="|"||this.ch()==="=")||n==="&"&&(this.ch()==="&"||this.ch()==="=")||n==="*"&&this.ch()==="*"||n!=="=="&&n!=="!="&&n!=="<="&&n!==">="&&n!=="<=>"&&this.ch()==="="){this.i=r;continue}this.ws2();let a=t();if(a){s=this.node("op",l,{op:n,a:s,b:a});continue e}this.i=r}break}return s}eqs=()=>this.binLevel("eqs",this.cmps);cmps=()=>this.binLevel("cmps",this.bitors);bitors=()=>this.binLevel("bitors",this.bitand);bitand=()=>this.binLevel("bitand",this.bitshift);bitshift=()=>this.binLevel("bitshift",this.sum);sum=()=>this.binLevel("sum",this.product);product=()=>this.binLevel("product",this.power);power=()=>this.binLevel("power",this.expr);expr=()=>{let e=this.i,t=null;if(this.lit("!")||this.word("not")){this.ws2();let n=this.expr();if(n)t=this.node("not",e,{a:n});else this.i=e}if(!t&&this.lit("~")){this.ws2();let n=this.expr();if(n)t=this.node("wavy",e,{a:n});else this.i=e}for(let n of["-","+"]){if(t)break;if(this.ch()===n&&this.ch(1)!==n){this.i++,this.ws2();let r=this.atom();if(r)t=this.node("op",e,{op:n,a:this.node("value",e,{v:0}),b:r});else this.i=e}}for(let[n,r]of[["--",-1],["++",1]]){if(t)break;if(this.lit(n)){this.ws1();let l=this.atom();if(l)t=this.node("inc",e,{target:l,delta:r,prefix:!0});else this.i=e}}if(!t){let n=this.atom();if(!n)return this.i=e,null;if(t=n,this.lit("++"))this.ws1(),t=this.node("inc",e,{target:n,delta:1,prefix:!1});else if(this.lit("--"))this.ws1(),t=this.node("inc",e,{target:n,delta:-1,prefix:!1})}let s=[t];for(;;){let n=this.call();if(n){s.push(n);continue}if(s.some((r)=>r.k==="msg"&&(r.name==="if"||r.name==="elsif"))){let r=this.i;if(this.ws2(),this.word("elsif")||this.word("else")){this.i=r,this.ws2();let l=this.call();if(l){s.push(l);continue}}this.i=r}break}return this.node("expr",e,{items:s})};atom(){return this.value()??this.closure()??this.list()??this.call()}call(){let e=this.i,t=this.name();if(t)return t.args=this.value()??this.list(),t.block=this.block()??this.closure(),t;this.i=e;let s=this.value()??this.list();if(s)return this.node("msg",e,{name:null,args:s,block:this.block(),q:!1});return this.i=e,null}name(){let e=this.i,t=this.path();if(t)return this.node("path",e,{name:t,q:!1});if(this.lit("?")){this.ws2();let r=this.msgName();if(r!==null)return this.ws1(),this.node("msg",e,{name:r,q:!0});let l=this.path();if(l)return this.node("path",e,{name:l,q:!0});return this.i=e,null}let s=this.tupleIdx();if(s)return s;if(this.word("and")||this.word("or")||this.word("not"))return this.i=e,null;let n=this.msgName();if(n!==null)return this.ws1(),this.node("msg",e,{name:n,q:!1});return null}path(){let e=this.i;if(this.ch()==="/"&&ne(this.ch(1))){this.i++;let t=this.msgName(!1);return this.ws1(),t}return this.i=e,null}msgName(e=!0){if(this.touch(),!ne(this.ch()))return null;let t=this.i;this.i++;while(ce(this.ch()))this.i++;if(e&&this.ch()==="?")this.i++;return this.s.slice(t,this.i)}value(){let e=this.i,t=this.immed();if(t!==void 0)return this.ws1(),this.node("value",e,{v:t});return this.i=e,this.tupleIdx()??this.lick()??this.group()}tupleIdx(){let e=this.i,t=this.msgName();if(t!==null&&this.ch()==="["){let s=this.lick();if(s&&s.items.length)return this.node("index",e,{name:t,key:s.items[0]})}return this.i=e,null}immed(){let e=this.i;if(this.word("nil"))return null;if(this.word("true"))return!0;if(this.word("false"))return!1;if(this.lit("0x")&&se(this.ch())){let n=this.i;while(se(this.ch()))this.i++;return parseInt(this.s.slice(n,this.i),16)}if(this.i=e,this.ch()==="0")this.i++;else{if(this.ch()==="-")this.i++;if(this.ch()>="1"&&this.ch()<="9")while(B(this.ch()))this.i++;else return this.i=e,this.str1()??this.str2()}let t=!1;if(this.ch()==="."&&B(this.ch(1))){this.i++;while(B(this.ch()))this.i++;t=!0}if(this.ch()==="e"&&(B(this.ch(1))||(this.ch(1)==="-"||this.ch(1)==="+")&&B(this.ch(2)))){this.i+=2;while(B(this.ch()))this.i++;t=!0}let s=this.s.slice(e,this.i);return this.touch(),t?new w(parseFloat(s)):parseInt(s,10)}str1(){if(this.ch()!=="'")return;let e=this.i;this.i++;let t="";for(;;){if(this.i>=this.s.length){this.i=e;return}let s=this.ch();if(s==="'"){if(this.ch(1)==="'"){t+="'",this.i+=2;continue}return this.i++,t}t+=s,this.i++}}str2(){if(this.ch()!=='"')return;let e=this.i;this.i++;let t="";for(;;){if(this.i>=this.s.length){this.i=e;return}let s=this.ch();if(s==='"')return this.i++,t;if(s==="\\"){let n=this.ch(1);if(this.i+=2,n==="n")t+=`
+`;else if(n==="t")t+="\t";else if(n==="r")t+="\r";else if(n==="b")t+="\b";else if(n==="f")t+="\f";else if(n==="u"&&[0,1,2,3].every((r)=>se(this.ch(r))))t+=String.fromCodePoint(parseInt(this.s.slice(this.i,this.i+4),16)),this.i+=4;else if(n==="U"&&this.ch()==="{"){let r=this.s.indexOf("}",this.i);t+=String.fromCodePoint(parseInt(this.s.slice(this.i+1,r),16)),this.i=r+1}else t+=n;continue}t+=s,this.i++}}closure(){let e=this.i,t=this.list(),s=this.block();if(s)return this.node("proto",e,{sig:t,body:s});return this.i=e,null}list(){let e=this.i,t=this.memo.get(e);if(t)return this.i=t.e,t.n;let s=null;if(this.lit("(")){this.ws2();let n=this.i,r=this.statements(),l=this.i;if(this.lit(")"))this.ws1(),s=this.node("list",e,{items:r,src:this.s.slice(n,l)})}if(!s)this.i=e;return this.memo.set(e,{n:s,e:this.i}),s}block(){let e=this.i;if(!this.lit(":"))return null;this.ws2();let t=this.statements();if(this.lit("."))return this.ws1(),this.node("block",e,{stmts:t});return this.i=e,null}group(){let e=this.i;if(!this.lit("|"))return null;this.ws2();let t=this.statements();if(this.lit("."))return this.ws1(),this.node("group",e,{stmts:t});return this.i=e,null}lick(){let e=this.i;if(!this.lit("["))return null;this.ws2();let t=[],s=this.lickItem();if(s){t.push(s);for(;;){let n=this.i;if(!this.sep())break;let r=this.lickItem();if(!r){this.i=n;break}t.push(r)}this.sep()}if(this.lit("]"))return this.ws1(),this.node("lick",e,{items:t});return this.i=e,null}lickItem(){let e=this.i,t=(r,l,a,c=null)=>this.node("lickitem",e,{name:r,inner:l,attr:a,nameVal:c}),s=this.msgName();if(s!==null){this.ws1();let r=this.i,l=this.list();if(l){let c=this.loose();if(c)return t(s,c,l);return t(s,null,l)}this.i=r;let a=this.loose();if(a){let c=this.i;if(l=this.list(),l)return t(s,a,l);return this.i=c,t(s,a,null)}return this.i=r,t(s,null,null)}this.i=e;let n=this.loose();if(n)return this.ws1(),t(null,null,null,n);return null}loose(){let e=this.i,t=this.value();if(t)return t;let s=this.unquoted();if(s!==null)return this.node("value",e,{v:s});return null}isUnqSep(){let e=this.i,t=this.sep()&&!"{[(".includes(this.ch()||"x");return this.i=e,t}unqChar(){let e=this.ch();if(!e)return!1;let t={"{":"}","[":"]","(":")"};if(t[e]){let s=this.i;this.i++;let n=0;while(this.unqChar())n++;if(n===0||this.ch()!==t[e])return this.i=s,!1;return this.i++,!0}if("}])".includes(e))return!1;return this.i++,!0}unquoted(){let e=this.i;while(this.i<this.s.length){if(this.isUnqSep()||this.ch()==="]")break;if(!this.unqChar())break}if(this.i===e)return null;return this.s.slice(e,this.i)}static parseSig(e){let t=new P(e),s=[],n=!1,r=()=>new d(`Bad signature "(${e})"`);for(;;){if(t.ws2(),t.i>=e.length)break;if(t.lit("|")){n=!0;continue}if(t.lit(",")||t.lit("...")||t.lit("."))continue;if("-\\*".includes(t.ch()))t.i++;let l=t.msgName(!1);if(l===null)throw r();t.ws1();let a={name:l,type:null,optional:n};if(t.lit(":=")){t.ws1();let c=t.i,p=t.immed();if(p===void 0)throw r();a.def=p,a.defSrc=e.slice(c,t.i)}else if(t.lit("=")){t.ws1();let c=t.msgName(!1)??(t.ch()==="&"?(t.i++,"&"):null);if(c===null)throw r();a.type=c}s.push(a)}return s}static sigText(e){return e.map((t,s)=>(s===0?t.optional?"|":"":t.optional&&!e[s-1].optional?"|":",")+t.name+(t.type?"="+t.type:"")+(t.defSrc!==void 0?":="+t.defSrc:"")).join("")}}function X(e){return new P(e).program()}function he(e){let t=e.K,s=(i,o,u,f)=>i.methods.set(o,fe(o,u,f)),n=(i,...o)=>{if(!z(i)&&!(i instanceof x))throw new d(`Expected a block, got ${e.describe(i)}`);return e.callValue(i,null,o,null)},r=(i,o)=>{if(typeof i==="number")return i;if(i instanceof w)return Math.trunc(i.v);throw new d(`${o} expects a number, got ${e.describe(i)}`)},l=(i)=>Array.from(i),a=(i)=>i instanceof k?i.items.map((o)=>a(o??null)).join(""):e.str(i),c=(i,o)=>{if(C(i)&&C(o))return O(i)-O(o);let u=e.str(i),f=e.str(o);return u<f?-1:u>f?1:0},p=(i)=>(o,u)=>{if(z(i))return r(n(i,o,u),"sort block");return i===!1?c(u,o):c(o,u)},h=t.Lobby;s(h,"print","",(i)=>(e.out(a(i)),"")),s(h,"say","",(i)=>(e.out(e.str(i)+`
+`),"")),s(h,"string","",(i)=>e.str(i)),s(h,"kind","",(i)=>e.kindOf(i)),s(h,"self","",(i)=>i),s(h,"isa?","type=o",(i,[o])=>o instanceof x&&e.isa(e.kindOf(i),o)),s(h,"subclass?","type=o",(i,[o])=>{let u=i instanceof x?i:e.kindOf(i);return o instanceof x&&e.isa(u,o)}),s(h,"responds?","name=S",(i,[o])=>e.lookup(e.kindOf(i),o)!==null),s(h,"nil?","",(i)=>i===null),s(h,"number?","",(i)=>C(i)),s(h,"integer?","",(i)=>typeof i==="number"),s(h,"double?","",(i)=>i instanceof w),s(h,"string?","",(i)=>typeof i==="string"),s(h,"number","",(i)=>{if(i===!0)return 1;if(i===!1||i===null)return 0;if(C(i))return i;if(typeof i==="string")return ye(i);return null}),s(h,"list","size=N",(i,[o])=>new k(Array(r(o,"list")).fill(null))),s(h,"def","name=S,method=o",(i,[o,u])=>((i instanceof x?i:e.kindOf(i)).methods.set(o,u),u)),s(h,"meta","",(i)=>i instanceof x?e.metaOf(i):e.kindOf(i)),s(h,"name","",(i)=>i instanceof x?i.name:null),s(h,"send","message=S|args=o",(i,[o,u])=>{let f=e.lookup(e.kindOf(i),o);if(!f)return null;let y=u instanceof k?u.items:u===null?[]:[u];return e.invoke(f.v,i,y,null,y.length>0)}),s(h,"argv","",()=>new k(["potion"])),s(h,"here","",()=>{throw new d("Continuations (here) aren't supported in this browser clone")});let m=t.Number;s(m,"times","block=&",(i,[o])=>{let u=r(i,"times");for(let f=0;f<u;f++)e.tick(),n(o,f);return i}),s(m,"to","end=N,block=&",(i,[o,u])=>{let f=r(i,"to"),y=r(o,"to"),S=f<=y?1:-1;for(let v=f;S>0?v<=y:v>=y;v+=S)e.tick(),n(u,v);return o}),s(m,"step","end=N,by=N,block=&",(i,[o,u,f])=>{let y=O(o),S=O(u);if(S===0)throw new d("step can't be 0");for(let v=O(i);S>0?v<=y:v>=y;v+=S)e.tick(),n(f,v);return i}),s(m,"chr","",(i)=>String.fromCodePoint(r(i,"chr"))),s(m,"integer","",(i)=>r(i,"integer")),s(m,"double","",(i)=>new w(O(i))),s(m,"abs","",(i)=>typeof i==="number"?Math.abs(i):new w(Math.abs(O(i)))),s(m,"sqrt","",(i)=>new w(Math.sqrt(O(i)))),s(m,"floor","",(i)=>Math.floor(O(i))),s(m,"ceil","",(i)=>Math.ceil(O(i))),s(m,"round","",(i)=>Math.round(O(i))),s(m,"min","other=N",(i,[o])=>c(i,o)<=0?i:o),s(m,"max","other=N",(i,[o])=>c(i,o)>=0?i:o),s(m,"even?","",(i)=>r(i,"even?")%2===0),s(m,"odd?","",(i)=>Math.abs(r(i,"odd?")%2)===1),s(m,"rand","",(i)=>typeof i==="number"?Math.floor(Math.random()*i):new w(Math.random()*O(i)));for(let i of["sin","cos","tan","log","exp"])s(m,i,"",(o)=>new w(Math[i](O(o))));let b=t.String;s(b,"length","",(i)=>l(i).length),s(b,"slice","|start=N,end=N",(i,[o,u])=>{let f=l(i),y=f.length,S=o===null?0:r(o,"slice"),v=u===null?y:r(u,"slice");if(S<0)S+=y;if(v<0)v+=y;if(v<S)v=y;return f.slice(Math.max(0,S),Math.min(y,v)).join("")}),s(b,"at","index=N",(i,[o])=>e.callValue(i,null,[o],null)),s(b,"ord","|index=N",(i,[o])=>{let u=l(i)[r(o??0,"ord")];return u===void 0?null:u.codePointAt(0)}),s(b,"eval","",(i)=>e.run(i)),s(b,"upper","",(i)=>i.toUpperCase()),s(b,"lower","",(i)=>i.toLowerCase()),s(b,"trim","",(i)=>i.trim()),s(b,"split","|sep=S",(i,[o])=>new k(o===null||o===""?l(i):i.split(o))),s(b,"starts?","prefix=S",(i,[o])=>i.startsWith(o)),s(b,"ends?","suffix=S",(i,[o])=>i.endsWith(o)),s(b,"find","str=S",(i,[o])=>{let u=i.indexOf(o);return u<0?null:l(i.slice(0,u)).length}),s(b,"repeat","count=N",(i,[o])=>i.repeat(Math.max(0,r(o,"repeat")))),s(b,"reverse","",(i)=>l(i).reverse().join(""));let g=t.Tuple,V=(i)=>i.items;s(g,"length","",(i)=>V(i).length),s(g,"size","",(i)=>V(i).length),s(g,"at","index=N",(i,[o])=>ie(i,o)),s(g,"put","index=N,value=o",(i,[o,u])=>(re(i,o,u),i)),s(g,"push","value=o",(i,[o])=>(V(i).push(o),i)),s(g,"pop","",(i)=>V(i).pop()??null),s(g,"shift","",(i)=>V(i).shift()??null),s(g,"unshift","value=o",(i,[o])=>(V(i).unshift(o),i)),s(g,"first","",(i)=>V(i)[0]??null),s(g,"last","",(i)=>V(i)[V(i).length-1]??null),s(g,"clone","",(i)=>new k([...V(i)])),s(g,"reverse","",(i)=>new k([...V(i)].reverse())),s(g,"each","block=&",(i,[o])=>(V(i).forEach((u,f)=>(e.tick(),n(o,u??null,f))),i)),s(g,"map","block=&",(i,[o])=>new k(V(i).map((u,f)=>(e.tick(),n(o,u??null,f))))),s(g,"filter","block=&",(i,[o])=>new k(V(i).filter((u,f)=>(e.tick(),T(n(o,u??null,f)))))),s(g,"reduce","block=&|init=o",(i,[o,u])=>{let f=u,y=V(i);if(f===null)[f,...y]=y.length?y:[null];for(let S of y)f=n(o,f,S??null);return f}),s(g,"join","|sep=S",(i,[o])=>V(i).map((u)=>e.str(u??null)).join(o??"")),s(g,"sort","|order=o",(i,[o])=>new k([...V(i)].sort(p(o)))),s(g,"ins_sort","|order=o",(i,[o])=>new k([...V(i)].sort(p(o)))),s(g,"remove","index=N",(i,[o])=>{let u=[...V(i)],f=r(o,"remove");return u.splice(f<0?u.length+f:f,1),new k(u)}),s(g,"delete","index=N",(i,[o])=>{let u=r(o,"delete");return V(i).splice(u<0?V(i).length+u:u,1),i}),s(g,"slice","|start=N,end=N",(i,[o,u])=>{let f=V(i),y=f.length,S=o===null?0:r(o,"slice"),v=u===null?y-1:r(u,"slice");if(S<0)S+=y;if(v<0)v+=y;if(v<S)[S,v]=[v,S];return new k(f.slice(Math.max(0,S),v+1))}),s(g,"contains?","value=o",(i,[o])=>V(i).some((u)=>R(u??null,o))),s(g,"sum","",(i)=>V(i).reduce((o,u)=>e.binop("+",o,u??null),0));let L=t.Table,F=(i)=>i;s(L,"at","key=o",(i,[o])=>F(i).get(o)),s(L,"put","key=o,value=o",(i,[o,u])=>(F(i).set(o,u),i)),s(L,"remove","key=o",(i,[o])=>(F(i).delete(o),i)),s(L,"length","",(i)=>F(i).size),s(L,"keys","",(i)=>new k(F(i).entries().map(([o])=>o))),s(L,"values","",(i)=>new k(F(i).entries().map(([,o])=>o))),s(L,"each","block=&",(i,[o])=>{for(let[u,f]of F(i).entries())e.tick(),n(o,u,f);return i}),s(L,"map","block=&",(i,[o])=>new k(F(i).entries().map(([u,f])=>n(o,u,f)))),s(L,"filter","block=&",(i,[o])=>{let u=new M;for(let[f,y]of F(i).entries())if(T(n(o,f,y)))u.set(f,y);return u}),s(L,"slice","|keys=o",(i,[o])=>{let u=new M;if(o===null)for(let[f,y]of F(i).entries())u.set(f,y);else if(o instanceof k){for(let f of o.items)if(F(i).has(f??null))u.set(f??null,F(i).get(f??null))}return u});let E=t.Function;s(E,"arity","",(i)=>i.params.length),s(E,"minargs","",(i)=>i.params.filter((o)=>!o.optional&&o.def===void 0).length),s(E,"call","|args=o",(i,[o])=>e.callValue(i,null,o instanceof k?o.items:o===null?[]:[o],null));let D=t.Lick,A=(i)=>i;s(D,"name","",(i)=>A(i).name),s(D,"attr","",(i)=>A(i).attr),s(D,"licks","",(i)=>A(i).inner instanceof k?A(i).inner:null),s(D,"text","",(i)=>typeof A(i).inner==="string"?A(i).inner:null),s(D,"inner","",(i)=>A(i).inner)}function ye(e){let t=e.trim();if(t==="")return 0;if(/^-?\d+$/.test(t)){let n=parseInt(t,10);return Math.abs(n)>2147483647?new w(n):n}let s=parseFloat(t);return Number.isNaN(s)?0:new w(s)}class Y{v;constructor(e){this.v=e}}var G={sig:"break"},Q={sig:"continue"};class pe extends d{}var Ve=new Set(["if","elsif","else","while","loop","return","break","continue","self","class"]);function J(e,t){let s=0;for(let n=e;n;n=n.parent,s++)if(n.locals.has(t))return s;return-1}function me(e,t){let s=J(e,t);if(s>=0)return s;return e.locals.add(t),0}var ge=(e)=>e.charCodeAt(0)>=65&&e.charCodeAt(0)<=90,oe=(e)=>e.k==="expr"&&e.items.length===1&&e.items[0].k==="msg"&&!e.items[0].q&&e.items[0].name!==null&&!e.items[0].args&&!e.items[0].block?e.items[0].name:null;function ae(e){if(!e)return[];return P.parseSig(e.src)}function N(e,t){if(!e)return;switch(e.k){case"code":case"group":for(let s of e.stmts)N(s,t);return;case"expr":e.items.forEach((s,n)=>le(s,n,t));return;case"assign":{let s=e.lhs;if(s.k!=="expr")throw new d("Assignment to illegal variable",e.line);let n=s.items.length-1;for(let l=0;l<n;l++)le(s.items[l],l,t);let r=s.items[n];if(r.k==="msg"&&r.name!==null){if(r.args){if(n===0)r.depth=J(t,r.name);W(r.args,t)}else if(n===0&&!ge(r.name))r.depth=me(t,r.name)}else if(r.k!=="path")throw new d("Assignment to illegal variable",e.line);N(e.rhs,t);return}case"op":case"and":case"or":N(e.a,t),N(e.b,t);return;case"not":case"wavy":N(e.a,t);return;case"inc":{let s=e.target;if(s.k!=="msg"||s.name===null||s.args||s.block)throw new d("++/-- needs a variable",e.line);e.depth=me(t,s.name);return}case"list":for(let s of e.items)if(s.k==="assign"&&oe(s.lhs)!==null)N(s.rhs,t);else if(s.k==="assign")N(s.lhs,t),N(s.rhs,t);else N(s,t);return;case"proto":{e.params=ae(e.sig),Z(e.body,e.params,t);return}case"lick":for(let s of e.items)N(s,t);return;case"lickitem":N(e.nameVal,t),N(e.inner,t),N(e.attr,t);return;case"msg":case"path":case"index":le(e,0,t);return;case"value":case"block":if(e.k==="block")for(let s of e.stmts)N(s,t);return}}function Z(e,t,s){let n={locals:new Set(t.map((r)=>r.name)),parent:s};for(let r of e.stmts)N(r,n)}function W(e,t){if(e)N(e,t)}function le(e,t,s){if(e.k==="index"){e.depth=J(s,e.name);let r=e.key;if(r.name!==null&&!r.inner&&!r.attr)r.depth=J(s,r.name);else N(r,s);return}if(e.k==="path"){if(W(e.args,s),e.block)de(e,s);return}if(e.k!=="msg"){N(e,s);return}let n=e.name;if(!e.q&&n!==null&&Ve.has(n)){if(n==="if"||n==="elsif"||n==="else"||n==="while"||n==="loop"&&!e.args&&e.block){if(e.special=!0,e.args)W(e.args,s);if(e.block?.k==="block")for(let l of e.block.stmts)N(l,s);else if(e.block)N(e.block,s);return}if(n!=="loop"){if(e.special=!0,n==="class"){if(e.blockParams=e.args?.k==="list"?ae(e.args):[],e.block?.k==="block")Z(e.block,e.blockParams,s);else if(e.block)N(e.block,s);return}W(e.args,s);return}}if(t===0&&!e.q&&n!==null)e.depth=J(s,n);if(e.block?.k==="block"&&e.args?.k==="list"&&!(e.depth>=0)&&n!==null){e.blockParams=ae(e.args),e.argsAreSig=!0,Z(e.block,e.blockParams,s);return}W(e.args,s),de(e,s)}function de(e,t){if(!e.block)return;if(e.block.k==="block")e.blockParams=[],Z(e.block,[],t);else N(e.block,t)}class ue{K={};lobby;out;warn;strict;steps=0;deadline=0;depth=0;constructor(e={}){if(this.out=e.out??((s)=>globalThis.process?.stdout.write(s)),this.warn=e.warn??(()=>{}),this.strict=e.strict??!1,e.timeLimit)this.deadline=Date.now()+e.timeLimit;let t=this.kind("Lobby",null);for(let s of["Number","String","Tuple","Table","Function","NilKind","Boolean","Lick"])this.kind(s,t);this.lobby=new K(t),t.methods.set("Lobby",this.lobby),he(this)}kind(e,t){let s=new x(e,t);if(s.builtin=!0,this.K[e]=s,t)t.methods.set(e,s);else s.methods.set(e,s);return s}run(e,t){let s;try{s=new P(e,t).program()}catch(n){if(n instanceof d&&n.cell===void 0)n.cell=t;throw n}return this.runAst(s)}topScope={locals:new Set,parent:null};topFrame=null;runAst(e){N(e,this.topScope);let t=this.topFrame??=new H(null,this.lobby);try{return this.execStmts(e.stmts,t)}catch(s){if(s instanceof Y)return s.v;if(s===G||s===Q)throw new d(`'${s.sig}' outside of a loop`);if(s instanceof RangeError)throw new d("Stack overflow (recursion too deep)");throw s}}tick(){if(++this.steps%4096===0&&this.deadline&&Date.now()>this.deadline)throw new pe("Stopped: the program ran too long")}execStmts(e,t){let s={cond:null},n=null;for(let r of e)n=this.eval(r,t,s);return n}eval(e,t,s={cond:null}){try{return this.evalNode(e,t,s)}catch(n){if(n instanceof d&&n.cell===void 0){if(n.line===void 0)n.line=e.line;n.cell=e.cell}throw n}}evalNode(e,t,s){switch(e.k){case"value":return e.v;case"expr":return this.chain(e.items,t,s);case"msg":case"path":case"index":return this.chain([e],t,s);case"group":case"code":return this.execStmts(e.stmts,t);case"list":return this.evalList(e,t);case"proto":return new j(e.params,P.sigText(e.params),e.body.stmts,t,t.self);case"lick":return new k(e.items.map((n)=>this.evalLickItem(n,t)));case"lickitem":return this.evalLickItem(e,t);case"op":return this.binop(e.op,this.operand(e.a,t),this.operand(e.b,t),e.line);case"and":{let n=this.operand(e.a,t);return T(n)?this.operand(e.b,t):n}case"or":{let n=this.operand(e.a,t);return T(n)?n:this.operand(e.b,t)}case"not":return!T(this.operand(e.a,t));case"wavy":{let n=this.operand(e.a,t);if(typeof n!=="number")throw new d(`~ expects an integer, got ${this.describe(n)}`,e.line);return~n}case"inc":{let n=e.target.name,r=this.getVar(t,e.depth,n),l=this.binop("+",r??0,e.delta,e.line);return this.setVar(t,e.depth,n,l),e.prefix?l:r}case"assign":return this.assign(e,t);case"block":return this.execStmts(e.stmts,t)}throw new d(`Internal error: unknown node ${e.k}`,e.line)}operand(e,t){if(e.k==="expr"&&e.items.length===1&&e.items[0].k==="list"&&!e.items[0].items.some((s)=>s.k==="assign")){let s=null;for(let n of e.items[0].items)s=this.eval(n,t);return s}return this.eval(e,t)}frameAt(e,t){let s=e;for(let n=0;n<t&&s.parent;n++)s=s.parent;return s}getVar(e,t,s){return this.frameAt(e,t).vars.get(s)??null}setVar(e,t,s,n){this.frameAt(e,t).vars.set(s,n)}dynVar(e,t){for(let s=e;s;s=s.parent)if(s.vars.has(t))return{v:s.vars.get(t)};return null}chain(e,t,s){let n=null;for(let r=0;r<e.length;r++){let l=e[r];this.tick();try{if(l.special){n=this.special(l,r,n,t,s);continue}switch(l.k){case"msg":n=this.message(l,r,n,t);break;case"path":{let a=r===0?t.self:n,c=a instanceof K?a.ivars.get(l.name)??null:null;n=l.q?T(c):c;break}case"index":n=this.index(l,t);break;default:n=this.eval(l,t)}}catch(a){if(a instanceof d&&a.cell===void 0){if(a.line===void 0)a.line=l.line;a.cell=l.cell}throw a}}return n}condOf(e,t){if(!e)return null;if(e.k==="list"){let s=null;for(let n of e.items)s=this.eval(n,t);return s}return this.eval(e,t)}special(e,t,s,n,r){switch(e.name){case"if":{if(!e.args)throw new d("Missing if clause");if(!e.block)throw new d("Missing if body");return r.cond=this.condOf(e.args,n),T(r.cond)?this.inline(e.block,n):s}case"elsif":{if(T(r.cond))return s;return r.cond=this.condOf(e.args,n),T(r.cond)?this.inline(e.block,n):s}case"else":if(T(r.cond))return s;if(!e.block)throw new d("Missing else body");return this.inline(e.block,n);case"while":case"loop":{if(!e.block)throw new d(`Missing ${e.name} body`);for(;;){if(this.tick(),e.name==="while"&&!T(this.condOf(e.args,n)))break;try{this.inline(e.block,n)}catch(l){if(l===G)break;if(l===Q)continue;throw l}}return null}case"return":throw new Y(this.condOf(e.args,n));case"break":throw G;case"continue":throw Q;case"self":return n.self;case"class":{let l=this.K.Lobby;if(t>0){if(!(s instanceof x))throw new d(`Can't subclass ${this.describe(s)}`);l=s}let a=new x("",l);if(e.block){let c=e.blockParams??[];a.ctor=new j(c,P.sigText(c),e.block.stmts,n,n.self)}return a}}return null}inline(e,t){if(e.k==="block")return this.execStmts(e.stmts,t);return this.eval(e,t)}evalArgs(e,t){let s=[],n=null;if(!e)return{pos:s,named:n};if(e.k==="list")for(let r of e.items){let l=r.k==="assign"?oe(r.lhs):null;if(l!==null)(n??=new Map).set(l,this.eval(r.rhs,t));else s.push(this.eval(r,t))}else if(e.k==="lick")for(let r of e.items)s.push(this.evalLickItem(r,t));else s.push(this.eval(e,t));return{pos:s,named:n}}blockArg(e,t){let s=e.block;if(s.k==="proto")return this.eval(s,t);let n=e.blockParams??[];return new j(n,P.sigText(n),s.stmts,t,t.self)}message(e,t,s,n){let r=e.name;if(t===0&&!e.q&&r!==null&&e.depth>=0){let m=this.getVar(n,e.depth,r);if(!e.args&&!e.block)return m;let{pos:b,named:g}=this.evalArgs(e.args,n);if(e.block)b.push(this.blockArg(e,n));return this.callValue(m,n.self,b,g)}if(r===null){let{pos:m,named:b}=this.evalArgs(e.args,n);if(e.block)m.push(this.blockArg(e,n));return this.callValue(s,n.self,m,b)}let l=t===0?n.self:s,a=[],c=null;if(!e.argsAreSig)({pos:a,named:c}=this.evalArgs(e.args,n));if(e.block)a.push(this.blockArg(e,n));let p=!!(e.args||e.block),h=this.lookup(this.kindOf(l),r);if(e.q){if(!h)return p?null:!1;return p?this.invoke(h.v,l,a,c,!0):!0}if(!h){if(t===0){let m=this.dynVar(n,r);if(m)return p?this.callValue(m.v,n.self,a,c):m.v}return this.warn(`${this.describe(l)} doesn't respond to '${r}' (line ${e.line}), returning nil`),null}return this.invoke(h.v,l,a,c,p)}index(e,t){let s=e.depth>=0?this.getVar(t,e.depth,e.name):this.dynVar(t,e.name)?.v??null,n=e.key,r=n.name!==null&&!n.inner&&!n.attr?n.depth>=0?this.getVar(t,n.depth,n.name):this.dynVar(t,n.name)?.v??null:this.eval(n.nameVal,t);return this.callValue(s,t.self,[r],null)}lookup(e,t){for(let s=e;s;s=s.parent)if(s.methods.has(t))return{v:s.methods.get(t)};return null}invoke(e,t,s,n,r){if(z(e)){if(e.params.length===0){let l=this.callFn(e,t,[],null);return r&&(s.length||n)?this.callValue(l,t,s,n):l}return this.callFn(e,t,s,n)}return r?this.callValue(e,t,s,n):e}callValue(e,t,s,n){if(e instanceof j)return this.callFn(e,e.self,s,n);if(e instanceof q)return this.callFn(e,t,s,n);if(e instanceof x)return this.construct(e,s,n);let r=s[0]??(n?[...n.values()][0]:null);if(e instanceof k)return ie(e,r);if(e instanceof M)return e.get(r);if(typeof e==="string"){if(typeof r!=="number")return e;let l=Array.from(e);return l[r<0?l.length+r:r]??null}return e}construct(e,t,s){if(e.builtin)throw new d(`Can't construct a ${e.name} this way`);let n=new K(e);for(let r=e;r;r=r.parent)if(r.ctor){this.callFn(r.ctor,n,t,s);break}return n}callFn(e,t,s,n){let r=this.bind(e,s,n);if(e instanceof q)return e.fn(t,r);if(++this.depth>3000)throw this.depth=0,new d("Stack overflow (recursion too deep)");let l=new H(e.env,t);e.params.forEach((a,c)=>l.vars.set(a.name,r[c]));try{return this.execStmts(e.body,l)}catch(a){if(a instanceof Y)return a.v;if(a===G||a===Q)throw new d(`'${a.sig}' outside of a loop`);throw a}finally{this.depth--}}fnLabel(e){return`${e.name||"function"}(${e.sigText})`}bind(e,t,s){let n=e.params,r=this.strict||e instanceof q,l=Array(n.length).fill(null),a=Array(n.length).fill(!1);if(s)for(let[h,m]of s){let b=n.findIndex((g)=>g.name===h);if(b<0){if(r)throw new d(`${this.fnLabel(e)} has no argument named '${h}'`);continue}l[b]=m,a[b]=!0}if(e instanceof q&&t.length+(s?.size??0)>n.length)throw new d(`Too many arguments to ${this.fnLabel(e)}. It takes ${n.length}, given ${t.length+(s?.size??0)}`);let c=0;for(let h of t){while(c<n.length&&a[c])c++;if(c>=n.length)break;l[c]=h,a[c++]=!0}let p=n.filter((h)=>!h.optional&&h.def===void 0).length;return n.forEach((h,m)=>{if(a[m]){if(r&&h.type&&!(l[m]===null&&(h.optional||h.def!==void 0))&&!this.typeOk(l[m],h.type))throw new d(`Type error: ${e.name||"this function"} expects ${h.name} to be ${Ne(this.typeName(h.type))}, but got ${this.describe(l[m])}`);return}if(h.def!==void 0)l[m]=h.def;else if(h.optional||!r)l[m]=h.type==="N"||h.type==="I"?0:null;else{let b=a.filter(Boolean).length;throw new d(`Not enough arguments to ${this.fnLabel(e)}. Required ${p}, given ${b}`)}}),l}typeName(e){return{N:"Number",I:"Integer",D:"Double",S:"String",B:"Boolean","&":"Function",u:"Tuple",T:"Table",k:"Lick",o:"anything",n:"nil"}[e]??e}typeOk(e,t){switch(t){case"o":case"a":return!0;case"N":return C(e);case"I":return typeof e==="number";case"D":return e instanceof w;case"S":return typeof e==="string";case"B":return typeof e==="boolean";case"&":return z(e)||e instanceof x;case"u":return e instanceof k;case"T":return e instanceof M;case"k":return e instanceof U;case"n":return e===null}if(t==="Integer")return typeof e==="number";if(t==="Double")return e instanceof w;let s=this.lookup(this.K.Lobby,t);if(!s||!(s.v instanceof x))throw new d(`Unknown type '${t}' in signature`);return this.isa(this.kindOf(e),s.v)}isa(e,t){for(let s=e;s;s=s.parent)if(s===t)return!0;return!1}assign(e,t){let s=e.lhs.items,n=s.length-1,r=n>0?this.chain(s.slice(0,n),t,{cond:null}):t.self,l=s[n];if(l.k==="path"){let p=this.eval(e.rhs,t),h=n===0?t.self:r;if(!(h instanceof K))throw new d(`Can't set /${l.name} on ${this.describe(h)}`,e.line);return h.ivars.set(l.name,p),p}let a=l.name;if(l.args){let p,h={...l,args:null,block:null};if(n===0)p=l.depth>=0?this.getVar(t,l.depth,a):this.message(h,0,null,t);else p=this.message(h,1,r,t);let{pos:m}=this.evalArgs(l.args,t),b=this.eval(e.rhs,t);if(p instanceof k)re(p,m[0],b);else if(p instanceof M)p.set(m[0],b);return b}let c=this.eval(e.rhs,t);if(c instanceof j&&!c.name)c.name=a;if(ge(a)){if(this.K.Lobby.methods.set(a,c),c instanceof x&&!c.name)c.name=a}else if(n===0)this.setVar(t,l.depth,a,c);else(r instanceof x?r:this.kindOf(r)).methods.set(a,c);return c}evalList(e,t){if(!e.items.some((l)=>l.k==="assign"))return new k(e.items.map((l)=>this.eval(l,t)));let n=new M,r=0;for(let l of e.items)if(l.k==="assign"){let a=oe(l.lhs),c=a!==null?a:this.eval(l.lhs,t);n.set(c,this.eval(l.rhs,t))}else n.set(r++,this.eval(l,t));return n}evalLickItem(e,t){let s=e.name!==null?e.name:this.eval(e.nameVal,t);return new U(s,e.inner?this.eval(e.inner,t):null,e.attr?this.eval(e.attr,t):null)}binop(e,t,s,n){switch(e){case"==":return R(t,s);case"!=":return!R(t,s)}if(e==="<"||e===">"||e==="<="||e===">="||e==="<=>"){let p;if(C(t)&&C(s))p=O(t)-O(s);else if(typeof t==="string"&&typeof s==="string")p=t<s?-1:t>s?1:0;else throw new d(`Can't compare ${this.describe(t)} ${e} ${this.describe(s)}`,n);switch(e){case"<":return p<0;case">":return p>0;case"<=":return p<=0;case">=":return p>=0;default:return p<0?-1:p>0?1:0}}if(!C(t)||!C(s))throw new d(`Can't apply ${e} to ${this.describe(t)} and ${this.describe(s)}`,n);let r=typeof t==="number"&&typeof s==="number",l=O(t),a=O(s),c=(p)=>Number.isSafeInteger(p)?p:new w(p);if(r)switch(e){case"+":return c(l+a);case"-":return c(l-a);case"*":return c(l*a);case"/":if(a===0)throw new d("Division by zero",n);return Math.trunc(l/a);case"%":if(a===0)throw new d("Division by zero",n);return l%a;case"**":return a>=0?c(l**a):new w(l**a);case"<<":return c(l*2**a);case">>":return Math.floor(l/2**a);case"&":return l&a;case"|":return l|a;case"^":return l^a}switch(e){case"+":return new w(l+a);case"-":return new w(l-a);case"*":return new w(l*a);case"/":return new w(l/a);case"%":return new w(l%a);case"**":return new w(l**a)}throw new d(`${e} needs integers, got ${this.describe(t)} and ${this.describe(s)}`,n)}kindOf(e){let t=this.K;if(e===null)return t.NilKind;if(typeof e==="boolean")return t.Boolean;if(typeof e==="number"||e instanceof w)return t.Number;if(typeof e==="string")return t.String;if(e instanceof k)return t.Tuple;if(e instanceof M)return t.Table;if(e instanceof U)return t.Lick;if(e instanceof K)return e.kind;if(e instanceof x)return this.metaOf(e);return t.Function}metaOf(e){if(!e.meta){if(e.meta=new x(`${e.name||"class"} meta`,e.parent?this.metaOf(e.parent):this.K.Lobby),e===this.K.Lobby)e.meta.parent=this.K.Lobby}return e.meta}str(e){if(e===null)return"nil";if(typeof e==="boolean"||typeof e==="number")return String(e);if(typeof e==="string")return e;if(e instanceof w)return I(e.v);if(e instanceof k){let t=Array.from(e.items,(s)=>this.str(s??null));if(e.items.length&&e.items.every((s)=>s instanceof U))return"["+t.join(", ")+"]";return"("+t.join(", ")+")"}if(e instanceof M)return"("+e.entries().map(([t,s])=>`${this.str(t)}=${this.str(s)}`).join(", ")+")";if(e instanceof U){let t=[this.str(e.name)];if(e.inner!==null)t.push(this.str(e.inner));if(e.attr!==null)t.push(this.str(e.attr));return t.join(" ")}if(e instanceof x)return e.name||"class";if(e instanceof K){if(e===this.lobby)return"Lobby";let t=[...e.ivars].map(([s,n])=>` /${s}=${this.str(n)}`).join("");return`<${e.kind.name||"object"}${t}>`}if(e instanceof q)return`function(${e.sigText})`;return`function(${e.sigText})`}describe(e){let t=this.kindOf(e);if(e===null)return"nil";if(e===this.lobby)return"Lobby";let s=this.str(e);if(s.length>24)s=s.slice(0,21)+"...";if(typeof e==="string")s=JSON.stringify(s);return e instanceof x?s:`${t.name||"object"} ${s}`}}function R(e,t){if(e===t)return!0;if(e instanceof w&&t instanceof w)return e.v===t.v;if(e instanceof k&&t instanceof k)return e.items.length===t.items.length&&e.items.every((s,n)=>R(s??null,t.items[n]??null));return!1}function Ne(e){return(/^[AEIOU]/i.test(e)?"an ":"a ")+e}function ie(e,t){if(typeof t!=="number")return null;let s=e.items.length;return e.items[t<0?s+t:t]??null}function re(e,t,s){if(typeof t!=="number")throw new d("Tuple index must be an integer");let n=e.items.length,r=t<0?n+t:t;while(e.items.length<r)e.items.push(null);e.items[r]=s}function fe(e,t,s){let n=P.parseSig(t);return new q(e,n,P.sigText(n),s)}var ve=1e5;function be(e,t,s){let n="",r="",l=0,a=!1,c=Date.now(),p=()=>{if(r)s({type:"out",id:n,text:r});r="",c=Date.now()},h=(g)=>{if(a)return;if(l+=g.length,l>ve){a=!0,r+=`
+… output truncated at 100,000 characters
+`,p();return}if(r+=g,r.length>8192||Date.now()-c>40)p()},m=[],b=new ue({out:h,strict:t,timeLimit:30000,warn:(g)=>void(m.length<12&&m.push(g))});for(let g=0;g<e.length;g++){let V=e[g];n=V.id,l=0,a=!1,m=[];let L=performance.now();try{let F=b.run(V.code,V.id);p(),s({type:"cell",id:n,value:b.str(F),kind:b.kindOf(F).name||"object",ms:performance.now()-L,warnings:m})}catch(F){p();let E=F,D=F instanceof d?E.message:`Internal error: ${F.message}`;s({type:"error",id:n,message:D,line:E.line??null,src:E.cell??n,ms:performance.now()-L,warnings:m});for(let A of e.slice(g+1))s({type:"skipped",id:A.id});break}}s({type:"done"})}function _(e,t=0,s=[]){if(!e)return s;let n="  ".repeat(t),r=(a)=>s.push(n+a),l=(a)=>a.forEach((c)=>_(c,t+1,s));switch(e.k){case"code":case"block":case"group":r(e.k),l(e.stmts);break;case"expr":if(e.items.length===1)return _(e.items[0],t,s);r("expr"),l(e.items);break;case"value":r(`value ${JSON.stringify(e.v?.v!==void 0?e.v.v:e.v)}`);break;case"msg":if(r(`${e.q?"query":"message"} ${e.name??"(call)"}`),e.args)s.push(n+"  args"),_(e.args,t+2,s);if(e.block)_(e.block,t+1,s);break;case"path":r(`path /${e.name}`);break;case"index":r(`index ${e.name}[…]`);break;case"assign":r("assign"),l([e.lhs,e.rhs]);break;case"op":r(`op ${e.op}`),l([e.a,e.b]);break;case"and":case"or":r(e.k),l([e.a,e.b]);break;case"not":case"wavy":r(e.k),l([e.a]);break;case"inc":r(`inc ${e.target.name} ${e.delta>0?"+":"-"}1${e.prefix?" (prefix)":""}`);break;case"list":r(`list (${e.items.length})`),l(e.items);break;case"proto":r(`closure (${e.sig?e.sig.src:""})`),_(e.body,t+1,s);break;case"lick":r("lick"),l(e.items);break;case"lickitem":r(`item ${e.name??""}`),l([e.nameVal,e.inner,e.attr].filter(Boolean));break;default:r(e.k)}return s}self.onmessage=(e)=>{let t=e.data;if(t.kind==="ast"){try{self.postMessage({id:t.id,text:_(X(t.code)).join(`
+`)})}catch(s){let n=s;self.postMessage({id:t.id,text:"",error:n.message,line:n.line??null})}return}be(t.cells,t.strict,(s)=>self.postMessage(s))};})();
+</script>
+<script>(()=>{var a=(e)=>({t:"p",text:e}),T=(e)=>({t:"aside",text:e}),l=(e,t=!1)=>({t:"code",code:e.trim(),error:t}),k=[{id:"messages",title:"Everything is a message",blocks:[a('A Potion program is a stream of *messages* sent to values. `"Hello" say` sends the message `say` to the string `"Hello"`, and the string decides what that means.'),l('"Hello, potion!" say'),a("`say` prints the value it receives, followed by a new line."),a("Not every message prints something, and every cell has a value either way: whatever its last line works out to. It appears after the arrow, with its kind on the right. Here `length` answers with a number and prints nothing."),l('"potion" length'),T('If you know JavaScript or Ruby, unlearn one habit: a period never sends a message here, so you write `"potion" length`, not `"potion".length`.'),a("A message can also take a *block*: the code between a colon and a period. Here `times` is sent to `5` together with a block, and runs it five times."),l('5 times: "Odelay! " print.'),a("`print` is like `say` without the new line. The cell's value is `5`, because `times` answers with the number it was sent to."),a("In Potion, `.` means *end*, the way it ends a sentence. A colon opens a block and a period closes it. A block can span several lines, and nothing ends until the period arrives."),l(`
+3 times:
+  "tick " print
+  "tock " print.
+"done" say`),a('The block holds both `print` lines, so `tick tock` appears three times. The period after the second `print` closes the block, which is why `"done"` prints only once. Indentation is only for the reader; Potion doesn\'t look at it.'),a('Blocks nest, and each one needs its own period. Here the inner block ends on its own line, and the outer one ends after `"" say`.'),l(`
+2 times (i):
+  3 times (j): ("[", i, j, "] ") join print.
+  "" say.`),a("Messages chain from left to right, each one sent to the result of the one before. Here `sort`, `reverse` and `first` are sent in turn."),l("(3, 1, 2) sort reverse first"),a("Numbers come in two kinds that look alike. Integers stay integers, so `7 / 2` is `3`. Write a decimal point to get a double."),l("(7 / 2, 7.0 / 2, 2 ** 10, 90 << 4)"),{t:"exercise",title:"Square a length",prompt:'Make this cell\'s value `36`, using only `"potion"`, `length` and `*`.',code:'"potion" length',expect:"36",hint:"Messages bind tighter than operators, so `a length * b length` multiplies two lengths.",solution:'"potion" length * "potion" length'}]},{id:"data",title:"Tuples and tables",blocks:[a("`=` gives a name a value. Parentheses with commas build a *tuple*, which is Potion's list."),l(`
+name = "Odelay"
+year = 2009
+(name, year)`),a("Cells in the same chapter share their names, from top to bottom. The `foods` defined here is still there in the cells that follow, so you can read the chapter as one program."),l(`
+foods = ("cheese", "bread", "mayo")
+(foods length, foods at (1), foods (2), foods (-1))`),a("Calling a tuple like a function indexes it, so `foods (2)` and `foods at (2)` mean the same thing. Negative indexes count from the end."),l(`
+foods push ("pickles")
+foods`),a("Tuples are mutable: `push` changes `foods` itself instead of making a new tuple, so the cells below see four foods."),a("Put `name=value` pairs inside the parentheses and you get a *table* instead."),l(`
+pantry = (cheese=3, bread=1, mayo=0)
+pantry put ("pickles", 12)
+(pantry ("cheese"), pantry length)`),T("Lowercase names belong to the block that assigns them. A name that starts with a capital letter, like `Lobby` or `Number`, is global."),{t:"exercise",title:"Reorder the foods",prompt:"Using `foods` from above, make this cell's value `(mayo, cheese)`.",code:"(foods at (0), foods at (1))",expect:"(mayo, cheese)",hint:"`foods` now holds cheese, bread, mayo and pickles. Indexes start at 0.",solution:"(foods (2), foods (0))"}]},{id:"closures",title:"Blocks and closures",blocks:[a("A closure is a signature in parentheses followed by a block. You call it by sending it arguments."),l(`
+add = (x, y): x + y.
+add (2, 4)`),a("Arguments can also be passed by name, in any order."),l(`
+minus = (x, y): x - y.
+(minus (10, 4), minus (y=10, x=4))`),a("`:=` gives an argument a default. The signature is part of the closure's value, so asking for `greet` by itself shows it."),l(`
+greet = (name, greeting:="Hello"): (greeting, ", ", name, "!") join.
+greet ("Ada") say
+greet ("Grace", "Odelay") say
+greet`),a("A closure doesn't need arguments. Empty parentheses before the colon make one that takes none, and empty parentheses after its name call it."),l(`
+hello = (): "hello" print.
+hello ()`),a("So `()` does two jobs: before a colon it declares a closure with no arguments, and after a value it calls one."),a("Closures remember the names around them. Here `counter` is a closure with no arguments whose last line is another one, `(): n = n + 1.`, so calling `counter` returns that inner closure. Each call to `counter` makes a fresh `n` that only the closure it returns can reach."),l(`
+counter = ():
+  n = 0
+  (): n = n + 1.
+.
+tick = counter ()
+tick ()
+tick ()
+tick ()`),a("A block written after a message becomes that message's last argument. A list right before the block names the block's own arguments, here `i`."),l('3 times (i): ("round ", i) join say.'),{t:"exercise",title:"Twice",prompt:"Change `twice` so that it applies `f` two times. The cell's value should be `63`.",code:`
+twice = (f, x): f (x).
+twice ((x): x * 3., 7)`.trim(),expect:"63",hint:"`f (x)` applies `f` once. Pass its result back into `f`.",solution:`
+twice = (f, x): f (f (x)).
+twice ((x): x * 3., 7)`.trim()}]},{id:"flow",title:"Deciding and repeating",blocks:[a("`if` is a message too, so an `if` chain has a value you can return or assign. Each branch is a block that ends with its own period, and an `elsif` or `else` on the next line continues the chain."),l(`
+size = (n):
+  if (n < 10): "small".
+  elsif (n < 100): "medium".
+  else: "large".
+.
+(size (3), size (42), size (1000))`),a("The last period, alone on its line, closes the block of `size` itself."),a("`while` repeats its block for as long as its condition holds. This counts the steps 27 takes to reach 1 in the Collatz sequence."),l(`
+n = 27, steps = 0
+while (n != 1):
+  n = if (n % 2 == 0): n / 2. else: 3 * n + 1.
+  steps++.
+steps`),a("Tuples answer `each`, `map` and `filter`, each with a block. Numbers answer `to`, which counts from one number to another."),l(`
+squares = (1, 2, 3, 4, 5, 6) map (n): n * n.
+evens = squares filter (n): n % 2 == 0.
+1 to 3 (i): ("pass ", i) join say.
+(squares, evens)`),a("Blocks are ordinary values, so you can write your own control structures. `repeat` takes a count and a block, and decides when to call the block, just as `times` does."),l(`
+repeat = (n, block):
+  i = 0
+  while (i < n):
+    block (i)
+    i++.
+  n.
+repeat 3 (i): ("round ", i) join say.`),a("A block written after a call is always passed as the last argument, so a closure that takes a block should list it last, as `repeat` does with `block`. Inside, `block (i)` calls it with the round number. Here is a second one, which runs its block only when a condition is false."),l(`
+unless = (test, block):
+  if (not test): block ().
+.
+unless (3 > 2): "never printed" say.
+unless (2 > 3): "two is not bigger than three" say.`),{t:"exercise",title:"FizzBuzz",prompt:'Fill in `fizzbuzz` so that it returns `"Fizz"` for multiples of 3, `"Buzz"` for multiples of 5, `"FizzBuzz"` for multiples of both, and the number otherwise.',code:`
+fizzbuzz = (n):
+  # your if chain here
+  n.
+out = ()
+1 to 15 (i): out push (fizzbuzz (i)).
+out`.trim(),expect:"(1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz)",hint:"Check `n % 15 == 0` first, then 3, then 5, with the same `if` and `elsif` shape as `size` above.",solution:`
+fizzbuzz = (n):
+  if (n % 15 == 0): "FizzBuzz".
+  elsif (n % 3 == 0): "Fizz".
+  elsif (n % 5 == 0): "Buzz".
+  else: n.
+.
+out = ()
+1 to 15 (i): out push (fizzbuzz (i)).
+out`.trim()}]},{id:"kinds",title:"Kinds and mixins",blocks:[a("Potion has no classes in the usual sense. Every value has a *kind*: a set of methods that you can add to or change at any time. _why called these mixins."),l('(5 kind, "five" kind, (1, 2) kind, nil kind)'),a("Assigning to `Kind name` adds a method to every value of that kind. Inside the method, `self` is the value that received the message."),l(`
+String shout = (): (self upper, "!") join.
+"potion" shout`),a("A method without arguments reads like a property. A method can end in a question mark too."),l(`
+Number squared = (): self * self.
+Number between? = (lo, hi): self >= lo and self <= hi.
+(7 squared, 7 between? (1, 10), 70 between? (1, 10))`),a("Put a question mark in front of a message to ask whether a value responds to it, without sending it."),l('(7 ?squared, "seven" ?squared, "seven" ?shout)'),a("This is *duck typing*: if it walks like a duck and quacks like a duck, it's a duck. Potion doesn't ask what kind a value is before sending it a message, only whether it answers. So a closure can accept anything that responds to `shout`, and fall back to something else when a value doesn't."),l(`
+loud = (x):
+  if (x ?shout): x shout.
+  else: x string.
+.
+(loud ("potion"), loud (42))`),a("A string answers `shout` because of the method added above, so it gets shouted. A number doesn't, so `loud` falls back to `string`. Chapter 8 shows the opposite approach, where a signature names the kind it expects."),T("These methods now exist on every string and number for the rest of this chapter. _why planned to let you scope such changes to one file or one closure, but that part was never built."),{t:"exercise",title:"A second method",prompt:"Teach every tuple a `second` method, so that this cell's value is `plum`.",code:`
+# Tuple second = ...
+("ink", "plum", "glass") second`.trim(),expect:"plum",hint:"Follow the shape of `String shout` above, and use `self at (1)`.",solution:`
+Tuple second = (): self at (1).
+("ink", "plum", "glass") second`.trim()}]},{id:"classes",title:"Classes and paths",blocks:[a("`class` turns a block into a constructor. Inside it, `/life` is an instance variable: a *path* into the object being built."),l(`
+Creature = class (life, strength):
+  /life = life
+  /strength = strength.
+
+Creature describe = ():
+  ("life ", /life, ", strength ", /strength) join.
+
+Creature (45, 65) describe`),a("A method that ends with `self` returns the object, so calls to it can be chained."),l(`
+Creature hit = (damage):
+  /life = /life - damage
+  self.
+
+c = Creature (45, 65)
+c hit (20) hit (5) describe`),a("Send `class` to an existing class to make a subclass. `Rabbit` inherits `describe` and `hit`, and `r /bombs` reads a path from outside the object."),l(`
+Rabbit = Creature class (bombs):
+  /life = 10
+  /strength = 44
+  /bombs = bombs.
+
+r = Rabbit (3)
+(r describe, r /bombs, r isa? (Creature))`),{t:"exercise",title:"Heal",prompt:"Give `Creature` a `heal` method that adds to `/life` and returns the creature, so the cell's value is `life 50, strength 65`.",code:`
+# Creature heal = ...
+Creature (45, 65) hit (15) heal (20) describe`.trim(),expect:"life 50, strength 65",hint:"Copy `hit` and change one character.",solution:`
+Creature heal = (amount):
+  /life = /life + amount
+  self.
+Creature (45, 65) hit (15) heal (20) describe`.trim()}]},{id:"licks",title:"Licks, the data language",blocks:[a("Square brackets switch Potion into its second language, for data. Each item has a name, optional contents and optional attributes in parentheses. _why wanted something as light as s-expressions that still looks like data rather than code."),l(`
+app = [window (width=200, height=400) [
+  para "Welcome.",
+  button "OK", button "Cancel"]]
+app`),a("A lick answers `name`, `attr`, `text` and `licks`, the items nested inside it."),l(`
+w = app first
+(w name, w attr ("width"), w licks length)`),a("Licks are ordinary values, so a few lines of Potion can turn one into HTML."),l(`
+render = (node):
+  out = ("<", node name)
+  if (node attr):
+    node attr each (k, v): out push ((" ", k, "=\\"", v, "\\"") join).
+  .
+  out push (">")
+  if (node licks):
+    node licks each (child): out push (render (child)).
+  .
+  elsif (node text):
+    out push (node text).
+  out push (("</", node name, ">") join)
+  out join.
+
+render (w)`),{t:"exercise",title:"Count the buttons",prompt:"Change the filter so that it keeps only the buttons in `w`. The cell's value should be `2`.",code:`
+buttons = w licks filter (item): true.
+buttons length`.trim(),expect:"2",hint:'Every lick answers `name`. Compare it with `"button"`.',solution:`
+buttons = w licks filter (item): item name == "button".
+buttons length`.trim()}]},{id:"types",title:"Typed signatures",blocks:[a("Potion's grammar has always accepted types in signatures: `x=N` for a number, `s=S` for a string. The original parses them and then ignores them. This version checks them every time a closure is called."),l(`
+area = (w=N, h=N): w * h.
+area (3, 4)`),l('area ("three", 4)',!0),a("In the original C Potion, nothing stops that call at `area`. The string goes straight into `*`, and what happens next depends on how you run it: the default JIT build crashes with a segmentation fault, and the bytecode VM quietly prints nothing."),{t:"switch",label:"Check types in this chapter",text:"Turn this off to let calls through unchecked, as the original does. The cell above still fails, but later, inside `*`, with a message that doesn't mention `area`. The switch only affects this chapter."},a("Kind names work as types too, including your own classes."),l(`
+Point = class (x=N, y=N): /x = x, /y = y.
+norm = (p=Point):
+  squares = p /x * p /x + p /y * p /y
+  squares sqrt.
+norm (Point (3, 4))`),l("norm ((3, 4))",!0),T("Checking also catches missing arguments, which the original quietly fills in with nil, or 0 for an argument typed as a number.")]},{id:"yours",title:"Your turn",blocks:[a("That covers most of the language. This last cell is yours. It starts with two classic recursive functions; raise the numbers to make it work harder, and press Stop if it takes too long."),l(`
+fib = (n):
+  if (n < 2): n.
+  else: fib (n - 1) + fib (n - 2).
+.
+ack = (m, n):
+  if (m == 0): n + 1.
+  elsif (n == 0): ack (m - 1, 1).
+  else: ack (m - 1, ack (m, n - 1)).
+.
+(fib (20), ack (2, 3))`)]}];var A=(e)=>document.getElementById(e),Q=A("doc"),M=A("toc"),P=A("progress"),O=URL.createObjectURL(new Blob([A("worker-src").textContent??""],{type:"text/javascript"})),X=/Mac|iPhone|iPad/.test(navigator.platform),K=X?"⌘↵":"Ctrl+↵",f={drafts:{},solved:[]},W=k.map(()=>!0);try{let e=localStorage.getItem("potion-tutorial-v2");if(e)f={...f,...JSON.parse(e)}}catch{}var D=()=>{try{localStorage.setItem("potion-tutorial-v2",JSON.stringify(f))}catch{}},g=(e)=>e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");function x(e){return e.split("`").map((t,s)=>{if(s%2)return`<code>${g(t)}</code>`;return g(t).replace(/\*([^*]+)\*/g,"<em>$1</em>").replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')}).join("")}var ee=/^(if|elsif|else|while|loop|return|break|continue|self|class|and|or|not)$/,te=/^(nil|true|false)$/,se=/(#[^\n]*)|("(?:\\[\s\S]|[^"\\])*"?|'(?:''|[^'])*'?)|(0x[0-9a-fA-F]+|\b\d+(?:\.\d+)?(?:e[-+]?\d+)?\b)|(\/[A-Za-z_$@][\w$@]*)|([A-Za-z_$@][\w$@]*\??)|(=[NS&](?![\w$@]))/g;function ne(e,t){let s=[""],o=(c,i)=>{c.split(`
+`).forEach((p,u)=>{if(u>0)s.push("");if(p)s[s.length-1]+=i?`<span class="t-${i}">${g(p)}</span>`:g(p)})},d=0;for(let c of e.matchAll(se)){o(e.slice(d,c.index),null);let[i,p,u,n,r,m]=c,h;if(p)h="com";else if(u)h="str";else if(n)h="num";else if(r)h="path";else if(m)h=ee.test(m)?"kw":te.test(m)?"num":/^[A-Z]/.test(m)?"kind":null;else h="kw";o(i,h),d=c.index+i.length}return o(e.slice(d),null),s.map((c,i)=>`<span class="ln${t===i+1?" err":""}">${c||" "}</span>`).join("")}var N=[],H=new Map,q=k.map(()=>[]),v=[];function j(e,t,s,o){let d=document.createElement("figure");d.className="cell",d.id=`cell-${e}`,d.innerHTML=`
+    <div class="code">
+      <pre class="hl" aria-hidden="true"></pre>
+      <textarea id="code-${e}" rows="1" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="${g(o.label)}"></textarea>
+    </div>
+    <div class="cell-bar">
+      <button type="button" class="run">Run</button>
+      <span class="key" aria-hidden="true">${K}</span>
+      <button type="button" class="link reset" hidden>Reset</button>
+      <button type="button" class="link tree" aria-expanded="false">Syntax tree</button>
+      <span class="status" role="status" aria-live="polite"></span>
+    </div>
+    <div class="cell-out"></div>
+    <pre class="cell-ast" hidden></pre>`;let c=(u)=>d.querySelector(u),i={id:e,ch:t,orig:s,isolated:o.isolated,exercise:o.exercise,el:d,ta:c("textarea"),hl:c(".hl"),out:c(".cell-out"),status:c(".status"),runBtn:c(".run"),resetBtn:c(".reset"),treeBtn:c(".tree"),ast:c(".cell-ast"),errLine:null,errFrom:null,ran:!1},p=f.drafts[e];return i.ta.value=p&&p.orig===s?p.code:s,i.resetBtn.hidden=i.ta.value===s,S(i),ae(i),N.push(i),H.set(e,i),q[t].push(i),i}function S(e){e.hl.innerHTML=ne(e.ta.value,e.errLine)}function oe(){let e=[];k.forEach((t,s)=>{let o=document.createElement("section");o.className="chapter",o.id=t.id,o.setAttribute("aria-labelledby",`h-${t.id}`),o.innerHTML=`<header class="ch-head"><span class="eyebrow">Chapter ${s+1}</span><h2 id="h-${t.id}">${g(t.title)}</h2></header>`;let d=0,c=null;t.blocks.forEach((i,p)=>{let u=`${t.id}-${p}`;if(i.t==="p"){let n=document.createElement("p");n.innerHTML=x(i.text),o.appendChild(n)}else if(i.t==="aside"){let n=document.createElement("aside");n.className="aside",n.innerHTML=`<span class="eyebrow">Note</span><p>${x(i.text)}</p>`,o.appendChild(n)}else if(i.t==="switch"){let n=document.createElement("div");n.className="chapter-switch",n.innerHTML=`<label class="toggle"><input type="checkbox" id="switch-${t.id}" checked> ${g(i.label)}</label><p>${x(i.text)}</p>`;let r=n.querySelector("input");r.addEventListener("change",()=>{W[s]=r.checked,J(s)}),o.appendChild(n)}else if(i.t==="code"){d++;let n=j(u,s,i.code,{isolated:!!i.error,label:`Code, chapter ${s+1}, cell ${d}`});if(i.error)n.el.classList.add("expects-error");o.appendChild(n.el)}else{c=u;let n=document.createElement("div");n.className="exercise",n.innerHTML=`
+          <div class="ex-head">
+            <span class="eyebrow">Exercise</span>
+            <h3>${g(i.title)}</h3>
+            <span class="badge" data-state="todo">Not solved yet</span>
+          </div>
+          <p>${x(i.prompt)}</p>`;let r=j(u,s,i.code,{isolated:!0,exercise:i,label:`Exercise: ${i.title}`});r.badge=n.querySelector(".badge"),n.appendChild(r.el);let m=document.createElement("div");if(m.className="ex-help",m.innerHTML=`<details><summary>Hint</summary><p>${x(i.hint)}</p></details>
+          <button type="button" class="link solution">Use the solution</button>`,m.querySelector(".solution").addEventListener("click",()=>{r.ta.value=i.solution,C(r),z(r)}),n.appendChild(m),r.out.innerHTML='<p class="placeholder">Run this cell to check your answer.</p>',v.push(r),o.appendChild(n),f.solved.includes(B(r)))V(r,!0)}}),Q.appendChild(o),e.push(`<li><a href="#${t.id}" data-ch="${t.id}"><span class="num">${s+1}</span><span class="t">${g(t.title)}</span>${c?`<span class="mark" data-ex="${c}" aria-label="exercise not solved"></span>`:""}</a></li>`)}),M.innerHTML=`<ol>${e.join("")}</ol>`,M.querySelectorAll("a").forEach((t)=>t.addEventListener("click",(s)=>{s.preventDefault(),document.getElementById(t.dataset.ch)?.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})})),Z()}function C(e){if(e.errLine=e.errFrom=null,e.ta.value===e.orig)delete f.drafts[e.id];else f.drafts[e.id]={orig:e.orig,code:e.ta.value};if(e.resetBtn.hidden=e.ta.value===e.orig,D(),S(e),!e.ast.hidden)G(e)}function ae(e){e.ta.addEventListener("input",()=>C(e)),e.ta.addEventListener("keydown",(t)=>{if(t.key==="Enter"&&(t.metaKey||t.ctrlKey||t.shiftKey)){if(t.preventDefault(),z(e),t.shiftKey){let s=N[N.indexOf(e)+1];s?.ta.focus(),s?.el.scrollIntoView({block:"nearest"})}return}if(t.key==="Escape")return e.ta.blur();if(t.key==="Tab"&&!t.shiftKey)t.preventDefault(),e.ta.setRangeText("  ",e.ta.selectionStart,e.ta.selectionEnd,"end"),C(e);else if(t.key==="Enter"){let s=e.ta.value.slice(0,e.ta.selectionStart),o=s.slice(s.lastIndexOf(`
+`)+1),d=o.match(/^\s*/)[0];if(/:\s*(#.*)?$/.test(o))d+="  ";t.preventDefault(),e.ta.setRangeText(`
+`+d,e.ta.selectionStart,e.ta.selectionEnd,"end"),C(e)}}),e.runBtn.addEventListener("click",()=>y[e.ch]?.target===e?re(e):z(e)),e.resetBtn.addEventListener("click",()=>{e.ta.value=e.orig,C(e),z(e)}),e.treeBtn.addEventListener("click",()=>{let t=e.ast.hidden;if(e.ast.hidden=!t,e.treeBtn.setAttribute("aria-expanded",String(t)),e.treeBtn.textContent=t?"Hide tree":"Syntax tree",t)G(e)})}var y=[];function _(e){let t=q[e.ch];return t.slice(0,t.indexOf(e)).filter((s)=>!s.isolated).concat(e)}function U(e){let t=y[e];if(!t)return;t.worker.terminate(),y[e]=void 0;for(let s of t.list)L(s,!1);t.done()}function L(e,t){if(e.el.classList.toggle("running",t),y[e.ch]?.target===e||!t)e.runBtn.textContent=t?"Stop":"Run",e.runBtn.classList.toggle("stop",t)}function I(e,t,s){return U(e),new Promise((o)=>{let d=new Worker(O),c={worker:d,target:s,list:t,done:o};y[e]=c;let i=new Set,p=(u)=>{if(i.has(u.id))return;i.add(u.id),u.out.textContent="";for(let n of q[e])if(n.errFrom===u.id)n.errLine=n.errFrom=null,S(n)};for(let u of t)L(u,!0);if(s)p(s),s.status.textContent="Running…";d.onmessage=(u)=>{if(y[e]!==c)return;let n=u.data;if(n.type==="done"){d.terminate(),y[e]=void 0;for(let h of t)L(h,!1);o();return}let r=H.get(n.id);if(!r)return;if(p(r),n.type==="out"){ie(r,n.text);return}if(L(r,!1),r.ran=!0,n.type==="skipped"){w(r,"o-skip","Not run: a cell above stopped with an error."),r.status.textContent="";return}for(let h of n.warnings)w(r,"o-warn","Note: "+h);let m=n.ms<10?n.ms.toFixed(1):String(Math.round(n.ms));if(n.type==="cell"){let h=r.out.querySelector(".o-text")!==null;if(!(n.value===""&&h)){let b=document.createElement("div");b.className="o-value",b.innerHTML='<span class="o-arrow" aria-hidden="true">⇒</span><span class="o-v"></span><span class="o-kind"></span>',b.querySelector(".o-v").textContent=n.value===""?'""':n.value,b.querySelector(".o-kind").textContent=n.kind,r.out.appendChild(b)}if(r.status.textContent=`${m} ms`,r.exercise)F(r,n.value)}else{let h=H.get(n.src)??r,b=!r.ta.value.trim().includes(`
+`),Y=!n.line?"":h!==r?`Line ${n.line} of an earlier cell · `:b?"":`Line ${n.line} · `;if(r.el.classList.contains("expects-error"))w(r,"o-intent","This cell fails on purpose:");if(w(r,"o-error",Y+n.message),n.line)h.errLine=n.line,h.errFrom=r.id,S(h);if(r.status.textContent=r.el.classList.contains("expects-error")?"Fails, as intended":"Error",r.exercise)F(r,null)}},d.postMessage({kind:"cells",cells:t.map((u)=>({id:u.id,code:u.ta.value})),strict:W[e]})})}function ie(e,t){let s=e.out.lastElementChild;if(!s||!s.classList.contains("o-text"))s=document.createElement("pre"),s.className="o-text",e.out.appendChild(s);s.textContent+=t}function w(e,t,s){let o=document.createElement("div");o.className=t,o.textContent=s,e.out.appendChild(o)}function z(e){return I(e.ch,_(e),e)}function re(e){U(e.ch),w(e,"o-skip","Stopped."),e.status.textContent="Stopped"}async function J(e){let t=q[e];await I(e,t.filter((s)=>!s.isolated),null);for(let s of t)if(s.isolated&&(!s.exercise||s.ran||s.ta.value!==s.orig))await I(e,_(s),null)}function B(e){return`${k[e.ch].id}:${e.exercise.title}`}function V(e,t){if(!e.badge)return;e.badge.dataset.state=t?"solved":"todo",e.badge.textContent=t?"Solved":"Not solved yet",e.el.parentElement?.classList.toggle("solved",t);let s=M.querySelector(`[data-ex="${e.id}"]`);if(s)s.dataset.state=t?"solved":"todo",s.setAttribute("aria-label",t?"exercise solved":"exercise not solved")}function F(e,t){let s=e.exercise,o=t===s.expect,d=f.solved.includes(B(e));if(o&&!d)f.solved.push(B(e));if(D(),V(e,o||d),!o&&t!==null)w(e,"o-check",`Not yet: the value should be ${s.expect}.`);if(o)w(e,"o-ok","That's it.");Z()}function Z(){let e=v.filter((t)=>f.solved.includes(B(t))).length;P.innerHTML=`<b>${e}</b> of ${v.length} exercises solved`,P.style.setProperty("--p",String(v.length?e/v.length:0))}var E=null,R=new Map;function G(e){clearTimeout(R.get(e.id)),R.set(e.id,window.setTimeout(()=>{if(!E)E=new Worker(O),E.onmessage=(t)=>{let s=t.data,o=H.get(s.id);if(!o)return;o.ast.textContent=s.error?(s.line?`Line ${s.line} · `:"")+s.error:s.text,o.ast.classList.toggle("is-error",!!s.error)};E.postMessage({kind:"ast",id:e.id,code:e.ta.value})},120))}function le(){let e=new Map;M.querySelectorAll("a").forEach((o)=>e.set(o.dataset.ch,o));let t=new Map,s=new IntersectionObserver((o)=>{for(let c of o)t.set(c.target.id,c.isIntersecting);let d=k.find((c)=>t.get(c.id));e.forEach((c,i)=>c.toggleAttribute("aria-current",i===d?.id))},{rootMargin:"-20% 0px -70% 0px"});document.querySelectorAll(".chapter").forEach((o)=>s.observe(o))}document.querySelectorAll(".runkey").forEach((e)=>e.textContent=K);oe();le();k.forEach((e,t)=>J(t));})();
+</script>
+</body>
+</html>
