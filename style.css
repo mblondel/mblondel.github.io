@@ -20,22 +20,14 @@ padding: 0;
 margin: 0;
 }
 
-#topbar {
-background-color: #2b2525;
-padding: 8px 0;
+/* Dark band holding the name and the menu; orange rule underneath. */
+#site {
+background-color: #1e1918;
+border-bottom: 4px solid #c45500;
 margin-bottom: 25px;
 }
 
-#header {
-color: #ccc;
-border-top: 1px solid #333333;
-border-bottom: 1px solid #333333;
-background-color: #1e1918;
-}
-
-/* Title, navigation, content and footer share one column. */
-#header h1,
-#navigation,
+#site .inner,
 #main,
 #footer {
 max-width: 56rem;
@@ -45,23 +37,41 @@ padding-left: 20px;
 padding-right: 20px;
 }
 
+#site .inner {
+padding-top: 22px;
+}
+
 h1 {
 color: #fff;
-font-size: 2.8em;
+font-size: 2.6em;
 line-height: 1.2;
 letter-spacing: 0.02em;
 font-weight: lighter;
-margin-top: 0.5em;
-margin-bottom: 0.5em;
+margin: 0;
 }
 
-#navigation {
-font-size: 1.3em;
-line-height: 1.6;
+#site nav {
+display: flex;
+flex-wrap: wrap;
+gap: 0 1.4em;
+margin-top: 14px;
+font-size: 1.1em;
 }
 
-#navigation p {
-margin: 0 0 0.5em 0;
+#site nav a {
+color: #c9c2bf;
+padding: 8px 0 10px;
+border-bottom: 3px solid transparent;
+}
+
+#site nav a:hover {
+color: #fff;
+text-decoration: none;
+}
+
+#site nav a.active {
+color: #fff;
+border-bottom-color: #ff7b14;
 }
 
 #main {
@@ -96,11 +106,6 @@ text-decoration: none;
 
 a:hover {
 text-decoration: underline;
-}
-
-a:link.active, a:visited.active, a:hover.active {
-color: #666;
-font-weight: bold;
 }
 
 h2 {
@@ -187,15 +192,20 @@ line-height: 1.333;
   }
 
   h1 {
-  font-size: 2.2em;
+  font-size: 2.1em;
   }
 
   h2 {
   font-size: 1.7em;
   }
 
-  #navigation {
-  font-size: 1.15em;
+  #site nav {
+  gap: 0 1em;
+  font-size: 1em;
+  }
+
+  #site nav a {
+  padding: 4px 0 6px;
   }
 
   #picture img {
