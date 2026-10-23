@@ -23,6 +23,8 @@ margin: 0;
 /* Dark band holding the name and the menu; orange rule underneath. */
 #site {
 background-color: #1e1918;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
 border-bottom: 4px solid #c45500;
 margin-bottom: 25px;
 }
@@ -59,7 +61,7 @@ font-size: 1.1em;
 }
 
 #site nav a {
-color: #c9c2bf;
+color: #e3dedc;
 padding: 8px 0 10px;
 border-bottom: 3px solid transparent;
 }
