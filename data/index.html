@@ -1,10 +1,19 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!doctype html>
+<html lang="en">
 
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mathieu Blondel // Data</title>
-<link rel="stylesheet" href="../style.css" type="text/css" media="screen">
+<meta name="description" content="Amazon7, a dataset of 1.3 million Amazon product reviews in 7 categories for large-scale sparse multiclass classification.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mathieu Blondel // Data">
+<meta property="og:description" content="Amazon7, a dataset of 1.3 million Amazon product reviews in 7 categories for large-scale sparse multiclass classification.">
+<meta property="og:url" content="https://mblondel.org/data/">
+<meta property="og:image" content="https://mblondel.org/me.jpg">
+<meta name="twitter:card" content="summary">
 </head>
 
 <body>
@@ -32,7 +41,7 @@
 <h2>Amazon7</h2>
 
 <p>Amazon7 is a dataset that we created from <a
-href="http://www.cs.jhu.edu/~mdredze/datasets/sentiment/">raw data</a>
+href="https://www.cs.jhu.edu/~mdredze/datasets/sentiment/">raw data</a>
 collected by Mark Dredze and his colleagues. The dataset contains 1,362,109
 reviews of Amazon products.  Each review may belong to one of 7 categories
 (apparel, book, dvd, electronics, kitchen &amp; housewares, music, video) and is
@@ -46,23 +55,17 @@ Coordinate Descent Algorithms for Large-scale Sparse Multiclass Classification"
 <p><a href="https://drive.google.com/open?id=0B5_0jMGiu_nielhpQ0xraGEwVkk">amazon7_pkl.tar.bz2</a> (303 MB download)</p>
 
 <p>For Python users, the easiest way to load the dataset is to use <a
-href="http://pythonhosted.org/joblib/">joblib</a>'s pickle functionalities.
-Note that joblib is also part of <a
-href="http://scikit-learn.org">scikit-learn</a> as
-sklearn.externals.joblib. After decompressing the above archive, you can load the dataset as follows:</p>
+href="https://joblib.readthedocs.io">joblib</a>'s pickle functionalities. After decompressing the above archive, you can load the dataset as follows:</p>
 
 <pre>
-try:
-    import joblib
-except ImportError:
-    from sklearn.externals import joblib
+import joblib
 
 data = joblib.load("amazon7_pkl/amazon7.pkl")
 X = data["X"]
 y = data["y"]
-print X.shape
-print y.shape
-print data["categories"]
+print(X.shape)
+print(y.shape)
+print(data["categories"])
 </pre>
 
 <p>Alternatively, you may want to use:</p>
